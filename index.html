@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VentureBridge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--Navbar-->
+<!--Navbar-->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">VentureBridge</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mx-auto">
+                <li class="nav-item text-center">
+                    <a class="nav-link" href="network.html"><i class="bi bi-people d-block"></i> My Network</a>
+                </li>
+                <li class="nav-item text-center">
+                    <a class="nav-link" href="message.html"><i class="bi bi-chat-dots d-block"></i> Messages</a>
+                </li>
+                <li class="nav-item text-center">
+                    <a class="nav-link" href="#mentors"><i class="bi bi-person-badge d-block"></i> Mentors</a>
+                </li>
+                <li class="nav-item text-center">
+                    <a class="nav-link" href="blogs.html"><i class="bi bi-journal-text d-block"></i> Blog</a>
+                </li>
+                <li class="nav-item text-center">
+                    <a class="nav-link" href="idlab.html"><i class="bi bi-rocket-takeoff d-block"></i> Idea Lab</a>
+                </li>
+            </ul>
+            <!-- Search Bar -->
+            <form id="searchForm" class="d-flex search-bar me-3">
+                <input class="form-control me-2" type="text" id="searchInput" placeholder="Ask AI...">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+            </form>
+            <!-- Login Icon -->
+            <a href="profile.html" class="text-light"><i class="bi bi-person-circle" style="font-size: 1.5rem;"></i></a>
+        </div>
+    </div>
+</nav>
+    
+    
+    <!-- Carousel -->
+    <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="images/startup1.jpg" class="d-block w-100" alt="Entrepreneurship">
+                <div class="carousel-caption d-none d-md-block">
+                    <h2>Empowering Entrepreneurs</h2>
+                    <p>Find the guidance you need to build your dream startup.</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="images/startup2.jpg" class="d-block w-100" alt="Business Growth">
+                <div class="carousel-caption d-none d-md-block">
+                    <h2>Expert Mentorship</h2>
+                    <p>Connect with industry leaders who will guide you.</p>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+    
+    <!-- Mentor Profiles -->
+    <section id="mentors" class="container text-center py-5">
+        <h2 class="fw-bold">Meet Our Mentors</h2>
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <img src="mentor.jpg" class="rounded-circle" width="200">
+                <h4>ABHISHEK</h4>
+                <p>Startup Consultant & Investor</p>
+            </div>
+            <div class="col-md-4">
+                <img src="mentor.jpg" class="rounded-circle" width="200">
+                <h4>GARV</h4>
+                <p>Marketing & Growth Strategist</p>
+            </div>
+            <div class="col-md-4">
+                <img src= "mentor.jpg" class="rounded-circle" width="400">
+                <h4>Nikhil</h4>
+                <p>Tech Entrepreneur & Advisor</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Blog Section -->
+    <section id="blog" class="container text-center py-5">
+        <h2 class="fw-bold">Entrepreneur Insights</h2>
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <h4>How to Secure Funding for Your Startup</h4>
+                <p>Discover essential tips to attract investors.</p>
+                <a href="#" class="btn btn-outline-dark">Read More</a>
+            </div>
+            <div class="col-md-4">
+                <h4>Building a Scalable Business Model</h4>
+                <p>Learn the key elements of a sustainable startup.</p>
+                <a href="#" class="btn btn-outline-dark">Read More</a>
+            </div>
+            <div class="col-md-4">
+                <h4>Top Marketing Strategies for New Businesses</h4>
+                <p>Boost your brand with effective marketing techniques.</p>
+                <a href="#" class="btn btn-outline-dark">Read More</a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-light text-center py-3">
+        <p>&copy; 2025 VentureBridge. All Rights Reserved.</p>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+</body>
+</html>

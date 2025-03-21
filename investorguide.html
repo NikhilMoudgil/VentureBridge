@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investor Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .button {
+            display: block;
+            width: 80%;
+            margin: 10px auto;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            border-radius: 5px;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            width: 80%;
+            max-width: 600px;
+            z-index: 1000;
+        }
+        .close {
+            background-color: red;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Investor Guide</h1>
+    
+    <button class="button" onclick="showPopup('investorTypes')">Types of Investors & Motivations</button>
+    <div id="investorTypes" class="popup">
+        <h2>Types of Investors & Motivations</h2>
+        <p><strong>Angel Investors</strong> – Early-stage backers seeking high returns and impact.</p>
+        <p><strong>Venture Capitalists (VCs)</strong> – Institutional investors prioritizing scalability and fast growth.</p>
+        <p><strong>Crowdfunding</strong> – Public funding requiring strong marketing and appeal.</p>
+        <button class="close" onclick="closePopup('investorTypes')">Close</button>
+    </div>
+    
+    <button class="button" onclick="showPopup('solidFoundation')">Key Elements of a Solid Foundation</button>
+    <div id="solidFoundation" class="popup">
+        <h2>Key Elements of a Solid Foundation</h2>
+        <p><strong>Strong Business Model</strong> – Defines value creation, scalability, and revenue generation.</p>
+        <p><strong>Product-Market Fit</strong> – Validates demand with real customer feedback and market data.</p>
+        <p><strong>Financial Health</strong> – Transparent records and compliance with standards.</p>
+        <p><strong>Intellectual Property & Legal Protections</strong> – Patents, trademarks, and copyrights safeguard innovation.</p>
+        <button class="close" onclick="closePopup('solidFoundation')">Close</button>
+    </div>
+    
+    <button class="button" onclick="showPopup('pitch')">Crafting a Compelling Pitch</button>
+    <div id="pitch" class="popup">
+        <h2>Crafting a Compelling Pitch</h2>
+        <p><strong>Elevator Pitch</strong> – A concise, engaging summary of the startup’s value.</p>
+        <p><strong>Pitch Deck Components</strong> – Covers problem, solution, market, business model, traction, financials, and team.</p>
+        <p><strong>Power of Storytelling</strong> – Engages investors by making the pitch relatable and memorable.</p>
+        <p><strong>Addressing Investor Concerns</strong> – Discussing risks and mitigation strategies.</p>
+        <button class="close" onclick="closePopup('pitch')">Close</button>
+    </div>
+    
+    <button class="button" onclick="showPopup('networking')">Networking and Building Relationships</button>
+    <div id="networking" class="popup">
+        <h2>Networking and Building Relationships</h2>
+        <p><strong>Strategic Networking</strong> – Use industry events, social media, and incubators to connect.</p>
+        <p><strong>Role of Mentors & Advisors</strong> – They enhance credibility and provide strategic connections.</p>
+        <p><strong>Power of Warm Introductions</strong> – More effective than cold pitches, builds trust.</p>
+        <p><strong>Building Long-Term Investor Relationships</strong> – Consistency, transparency, and engagement turn investors into advocates.</p>
+        <button class="close" onclick="closePopup('networking')">Close</button>
+    </div>
+    
+    <script>
+        function showPopup(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+        function closePopup(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+    </script>
+</body>
+</html>

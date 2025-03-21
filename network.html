@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Network</title>
+    <a href="index.html" class="home-btn">Home</a>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+    .home-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #ffffff;
+    color: #2575fc !important;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+    .home-btn:hover {
+    background: #2575fc;
+    color: #fff !important;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+        body {
+            background-color: #121212;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        /* Section Styling */
+        .network-section {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            height: 200px;
+           
+        }
+        .network-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Layout Fix - Larger Blocks */
+        .network-wrapper {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .network-box {
+            flex: 1 1 48%;
+            height: 175px;
+            margin-bottom: 25px;
+            min-width: 300px;
+            background: #262626;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        /* Grid for Cards */
+        .list {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* User Card */
+        .card {
+            background: #333;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            width: 120px; /* Larger cards */
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card img {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid #ff9f43;
+            margin-bottom: 10px;
+        }
+        .card p {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            background: #ff3e6c;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #e62e5c;
+        }
+        .btn-following {
+            background: #444;
+        }
+        .btn-following:hover {
+            background: #333;
+        }
+
+        /* Suggestions - Bigger & Scrollable */
+        .suggestions-section {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .suggestions-section .list {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 10px;
+        }
+        .suggestions-section .card {
+            flex: 0 0 auto;
+            width: 130px; /* Bigger suggestions */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>My Network</h1>
+
+    <!-- Followers & Following (Bigger Blocks) -->
+    <div class="network-wrapper">
+        <div class="network-box">
+            <h2>Followers</h2>
+            <div class="list">
+                <div class="card">
+                    <img src="you1.jpg" alt="User">
+                    <p>John Doe</p>
+                </div>
+                <div class="card">
+                    <img src="you2.jpg" alt="User">
+                    <p>Jane Smith</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="network-box">
+            <h2>Following</h2>
+            <div class="list">
+                <div class="card">
+                    <img src="you8.jpg" alt="User">
+                    <p>Mark Wilson</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contacts (Bigger & Independent) -->
+    <div class="network-section">
+        <h2>Contacts</h2>
+        <div class="list">
+            <div class="card">
+                <img src="you7.jpg" alt="User">
+                <p>Lisa Brown</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions (Bigger & Scrollable) -->
+    <div class="suggestions-section">
+        <h2>Suggestions</h2>
+        <div class="list">
+            <div class="card">
+                <img src="you4.jpg" alt="User">
+                <p>Michael</p>
+                <a href="#" class="btn">Follow</a>
+            </div>
+            <div class="card">
+                <img src="you5.jpg" alt="User">
+                <p>Sophia</p>
+                <a href="#" class="btn">Follow</a>
+            </div>
+            <div class="card">
+                <img src="you7.jpg" alt="User">
+                <p>David</p>
+                <a href="#" class="btn">Follow</a>
+            </div>
+            <div class="card">
+                <img src="you3.jpg" alt="User">
+                <p>Olivia</p>
+                <a href="#" class="btn">Follow</a>
+            </div>
+            <div class="card">
+                <img src="you4.jpg" alt="User">
+                <p>Ryan</p>
+                <a href="#" class="btn">Follow</a>
+            </div>
+            <div class="card">
+                <img src="you3.jpg" alt="User">
+                <p>Emma</p>
+                <a href="#" class="btn">Follow</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrepreneur Hub</title>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <a href="index.html" class="home-btn">Home</a>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .home-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #ffffff;
+    color: #2575fc !important;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+    .home-btn:hover {
+    background: #2575fc;
+    color: #fff !important;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+        .header {
+            background: #0073b1;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .container {
+            width: 60%;
+            margin: auto;
+            overflow-y: scroll;
+            height: 600px;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+        .profile {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .profile img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .profile-info {
+            flex-grow: 1;
+        }
+        .post {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .post h2 {
+            color: #0073b1;
+        }
+        .post p {
+            color: #555;
+        }
+        .post img, .post video {
+            width: 100%;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .icons {
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+        }
+        .icons i {
+            cursor: pointer;
+            font-size: 22px;
+            color: #666;
+            transition: color 0.3s;
+        }
+        .icons i:hover {
+            color: #0073b1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Entrepreneur Hub - Connect, Invest, Grow</div>
+    <div class="container">
+        <div class="profile">
+            <img src="you8.jpg" alt="User Profile">
+            <div class="profile-info">
+                <h4>John Doe</h4>
+                <p>Entrepreneur | Startup Founder</p>
+            </div>
+        </div>
+
+        <div class="new-post mb-3">
+            <textarea class="form-control" placeholder="Share your thoughts, achievements, or challenges..."></textarea>
+            <button class="btn btn-primary w-100 mt-2">Post</button>
+        </div>
+
+        <div class="post">
+            <h2>Fundraising Strategies - John Doe</h2>
+            <p>Here are my top tips for raising funds successfully...</p>
+            <img src="you12.jpg" alt="Fundraising">
+            <div class="icons">
+                <i class="fas fa-thumbs-up"></i>
+                <i class="fas fa-comment"></i>
+                <i class="fas fa-share"></i>
+                <i class="fas fa-bookmark"></i>
+                <i class="fas fa-user-plus"></i>
+                <i class="fas fa-money-bill-wave" title="Invest"></i>
+                <i class="fas fa-user" title="View Profile"></i>
+            </div>
+            <button class="btn btn-warning w-100 mt-2">Invest in This Idea</button>
+        </div>
+        
+        <div class="post">
+            <h2>AI for Startups - Jane Smith</h2>
+            <p>How AI is shaping the future of businesses...</p>
+            <video controls>
+                <source src="ai_startup.mp4" type="video/mp4">
+            </video>
+            <div class="icons">
+                <i class="fas fa-thumbs-up"></i>
+                <i class="fas fa-comment"></i>
+                <i class="fas fa-share"></i>
+                <i class="fas fa-bookmark"></i>
+                <i class="fas fa-user-plus"></i>
+                <i class="fas fa-money-bill-wave" title="Invest"></i>
+                <i class="fas fa-user" title="View Profile"></i>
+            </div>
+            <button class="btn btn-warning w-100 mt-2">Invest in This Idea</button>
+        </div>
+    </div>
+</body>
+</html>

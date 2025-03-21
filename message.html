@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venture Bridge - Messages</title>
+    <a href="index.html" class="home-btn">Home</a>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .home-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #ffffff;
+    color: #2575fc !important;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+/* Hover Effect */
+.home-btn:hover {
+    background: #2575fc;
+    color: #fff !important;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            width: 800px;
+            height: 500px;
+            background: #333;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 35%;
+            background: #444;
+            border-right: 1px solid #555;
+            overflow-y: auto;
+        }
+
+        .app-header {
+            background: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .contact-list {
+            padding: 10px;
+        }
+
+        .contact {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #555;
+            transition: background 0.2s;
+        }
+
+        .contact:hover {
+            background: #555;
+        }
+
+        .contact img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+        }
+
+        .contact-name {
+            font-weight: bold;
+        }
+
+        .contact-preview {
+            font-size: 12px;
+            color: lightgray;
+        }
+
+        /* Chat Section */
+        .chat-section {
+            width: 65%;
+            display: flex;
+            flex-direction: column;
+            background: #333;
+        }
+
+        .chat-header {
+            background: #444;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .default-message {
+            color: lightgray;
+            text-align: center;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .mentor {
+            background: #555;
+            color: white;
+            align-self: flex-start;
+        }
+
+        .user {
+            background: #666;
+            color: white;
+            align-self: flex-end;
+        }
+
+        /* Message Input */
+        .message-input {
+            display: flex;
+            padding: 10px;
+            background: #444;
+            border-top: 1px solid #555;
+        }
+
+        .message-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            background: #555;
+            color: white;
+        }
+
+        .message-input input::placeholder {
+            color: lightgray;
+        }
+
+        .message-input button {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .message-input button:hover {
+            background: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Left Sidebar - Contacts -->
+        <div class="sidebar">
+            <div class="app-header">📩 Messages</div>
+            <div class="contact-list">
+                <div class="contact" onclick="openChat('chat1')">
+                    <img src="https://randomuser.me/api/portraits/men/1.jpg" alt="User">
+                    <div class="contact-info">
+                        <div class="contact-name">John Doe</div>
+                        <div class="contact-preview">Hey, how's it going?</div>
+                    </div>
+                </div>
+                <div class="contact" onclick="openChat('chat2')">
+                    <img src="https://randomuser.me/api/portraits/women/2.jpg" alt="User">
+                    <div class="contact-info">
+                        <div class="contact-name">Emma Watson</div>
+                        <div class="contact-preview">Let's catch up later!</div>
+                    </div>
+                </div>
+                <div class="contact" onclick="openChat('chat3')">
+                    <img src="https://randomuser.me/api/portraits/men/3.jpg" alt="User">
+                    <div class="contact-info">
+                        <div class="contact-name">Michael Scott</div>
+                        <div class="contact-preview">That's what she said!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="chat-section">
+            <div class="chat-header" id="chat-header">Select a chat</div>
+            <div class="chat-box" id="chat-box">
+                <p class="default-message">Select a contact to start chatting</p>
+            </div>
+            <div class="message-input">
+                <input type="text" id="message-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChat = null;
+
+        function openChat(chatId) {
+            currentChat = chatId;
+
+            let chatHeader = document.getElementById("chat-header");
+            let chatBox = document.getElementById("chat-box");
+            
+            chatHeader.innerText = chatId === "chat1" ? "John Doe" :
+                       chatId === "chat2" ? "Emma Watson" :
+                       chatId === "chat3" ? "Michael Scott" :
+                       "Nikhil Dsouza";
+
+
+            chatBox.innerHTML = ""; // Clear previous messages
+
+            // Add fake previous messages
+            let fakeMessages = [
+                { sender: "mentor", text: "Hey, how's it going?" },
+                { sender: "user", text: "Good! You?" }
+            ];
+
+            fakeMessages.forEach(msg => {
+                let messageDiv = document.createElement("div");
+                messageDiv.className = "message " + msg.sender;
+                messageDiv.textContent = msg.sender === "mentor" ? "👨‍🏫 " + msg.text : "🧑‍💼 " + msg.text;
+                chatBox.appendChild(messageDiv);
+            });
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function sendMessage() {
+            if (!currentChat) return alert("Select a contact first!");
+
+            let inputField = document.getElementById("message-input");
+            let message = inputField.value.trim();
+
+            if (message === "") return;
+
+            let chatBox = document.getElementById("chat-box");
+
+            // Add user message
+            let userMessage = document.createElement("div");
+            userMessage.className = "message user";
+            userMessage.textContent = "🧑‍💼 You: " + message;
+            chatBox.appendChild(userMessage);
+
+            inputField.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Simulate mentor response after 1.5s
+            setTimeout(() => {
+                let mentorMessage = document.createElement("div");
+                mentorMessage.className = "message mentor";
+                mentorMessage.textContent = "👨‍🏫 Mentor: Interesting! Let's discuss.";
+
+                chatBox.appendChild(mentorMessage);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 1500);
+        }
+
+        // Allow Enter key to send message
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+    </script>
+
+</body>
+</html>

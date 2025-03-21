@@ -1,0 +1,282 @@
+/* General reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+/* Navbar Styling */
+
+
+
+
+/* Home Button - Consistent with Theme */
+
+
+
+/* Body and Container */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, #333, #333);
+    color: #333;
+    padding: 0;
+    margin: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    color: #333;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Header */
+.profile-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+/* Home Button Styling - Leadership Blog Style */
+.profile-header .home-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #ffffff;
+    color: #2575fc !important;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+/* Hover Effect */
+.profile-header .home-btn:hover {
+    background: #2575fc;
+    color: #fff !important;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure Profile Section is Position Relative */
+.profile-header {
+    position: relative;
+}
+
+
+.profile-header .profile-img {
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.profile-header h1 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-top: 15px;
+    text-transform: uppercase;
+}
+
+.profile-header .profession {
+    font-size: 1.3rem;
+    color: #555;
+    margin-top: 5px;
+}
+
+/* Hover effect for profile picture */
+.profile-header .profile-img:hover {
+    transform: scale(1.1);
+}
+
+/* Bio Section */
+.bio {
+    margin-bottom: 30px;
+}
+
+.bio h2 {
+    font-size: 2.2rem;
+    color: #333;
+    margin-bottom: 15px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.bio h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 5px;
+    height: 30px;
+    background: #2575fc;
+    transform: translateY(-50%);
+}
+
+.bio p {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #555;
+}
+
+/* Skills Section */
+.skills h2 {
+    font-size: 2.2rem;
+    color: #333;
+    margin-bottom: 15px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.skills h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 5px;
+    height: 30px;
+    background: #2575fc;
+    transform: translateY(-50%);
+}
+
+.skills-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+}
+
+.skill-item {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.skill-item:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.skill-item h3 {
+    font-size: 1.4rem;
+    color: #2575fc;
+    margin-bottom: 10px;
+}
+
+.skill-item p {
+    font-size: 1rem;
+    color: #555;
+}
+
+/* Projects Section */
+.projects h2 {
+    font-size: 2.2rem;
+    color: #333;
+    margin-bottom: 15px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.projects h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 5px;
+    height: 30px;
+    background: #2575fc;
+    transform: translateY(-50%);
+}
+
+.project {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.project:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.project h3 {
+    font-size: 1.6rem;
+    color: #2575fc;
+    margin-bottom: 10px;
+}
+
+.project p {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Contact Section */
+.contact h2 {
+    font-size: 2.2rem;
+    color: #333;
+    margin-bottom: 15px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.contact h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 5px;
+    height: 30px;
+    background: #2575fc;
+    transform: translateY(-50%);
+}
+
+.contact p {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.contact ul {
+    list-style: none;
+    padding: 0;
+}
+
+.contact ul li {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.contact ul li a {
+    color: #2575fc;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.contact ul li a:hover {
+    color: #0069d9;
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .skills-list {
+        grid-template-columns: 1fr;
+    }
+}
