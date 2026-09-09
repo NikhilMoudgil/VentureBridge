@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { toast } from "sonner"
 
 const supabase = createClient()
 
@@ -14,7 +15,6 @@ export function ProfileSettings() {
   const [role, setRole] = useState<'founder' | 'mentor' | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -31,14 +31,12 @@ export function ProfileSettings() {
     async function fetchProfile() {
       if (!user) return
 
-      // CHANGED: .single() to .maybeSingle() to prevent 406 errors on fresh profiles
       const { data: userData } = await supabase.from('users').select('role, full_name').eq('id', user.id).maybeSingle()
       
       if (userData) {
         setRole(userData.role)
         setFormData(prev => ({ ...prev, fullName: userData.full_name || "" }))
 
-        // Fetch specific role data safely
         if (userData.role === 'founder') {
           const { data: founderData } = await supabase.from('founders').select('*').eq('id', user.id).maybeSingle()
           if (founderData) {
@@ -74,7 +72,6 @@ export function ProfileSettings() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    setMessage(null)
 
     try {
       await supabase.from('users').update({ full_name: formData.fullName }).eq('id', user?.id)
@@ -96,9 +93,9 @@ export function ProfileSettings() {
         if (error) throw error
       }
       
-      setMessage({ type: 'success', text: 'Profile updated successfully!' })
+      toast.success("Profile updated successfully!")
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to update profile.' })
+      toast.error(error.message || 'Failed to update profile.')
     } finally {
       setSaving(false)
     }
@@ -114,12 +111,6 @@ export function ProfileSettings() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
-          {message && (
-            <div className={`rounded-md p-3 text-sm font-medium ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {message.text}
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Jane Doe" required />

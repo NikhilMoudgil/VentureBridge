@@ -9,7 +9,9 @@ import { AuthProvider, useAuth } from "@/components/ui/AuthProvider"
 import { createClient } from "@/lib/client"
 import { ProfileSettings } from "@/components/ui/ProfileSettings"
 import { Dashboard } from "@/components/ui/Dashboard"
-
+import { Toaster } from "sonner"
+import { ThemeProvider } from "./components/ui/ThemeProvider"
+import { IdeaLab } from "@/components/ui/IdeaLab"
 const supabase = createClient()
 
 // --- Route Guard with Profile Checking ---
@@ -95,6 +97,7 @@ function Signup() {
 export default function App() {
   return (
     <AuthProvider>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -124,8 +127,11 @@ export default function App() {
           
           {/* Profile Settings Route */}
           <Route path="profile" element={<ProfileSettings />} />
+          <Route path="idealab" element={<IdeaLab />} />
         </Route>
       </Routes>
+      <Toaster/>
+      </ThemeProvider>
     </AuthProvider>
   )
 }
