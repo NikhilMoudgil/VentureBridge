@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { createClient } from "@/lib/client"
-import { useAuth } from "@/components/ui/AuthProvider"
+import { useAuth } from "@/app/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 

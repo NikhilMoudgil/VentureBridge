@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/client"
-import { useAuth } from "@/components/ui/AuthProvider"
+import { useAuth } from "@/app/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/ui/AuthProvider";
+import { useAuth } from "@/app/AuthProvider";
 import { createClient } from "@/lib/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ModeToggle } from "./ModeToggle";
+import { ModeToggle } from "../../components/ModeToggle";
 const supabase = createClient();
 
 export function DashboardLayout() {
@@ -44,6 +44,7 @@ export function DashboardLayout() {
           <nav className="hidden gap-6 md:flex">
             <Link to="/dashboard" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Home</Link>
             <Link to="/dashboard/idealab" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">IdeaLab</Link>
+            <Link to="/dashboard/ventures" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">My Ventures</Link>
             <Link to="/dashboard/network" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Network</Link>
             <Link to="/dashboard/messages" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Messages</Link>
           </nav>
