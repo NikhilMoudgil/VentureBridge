@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Save, User, Briefcase, Link as LinkIcon, Award } from "lucide-react"
@@ -18,7 +18,6 @@ export function ProfileSettings() {
   const [saving, setSaving] = useState(false)
   const [role, setRole] = useState<'founder' | 'mentor' | null>(null)
 
-  // Form State
   const [formData, setFormData] = useState({
     full_name: "",
     industry: "",
@@ -61,15 +60,13 @@ export function ProfileSettings() {
     setSaving(true)
 
     try {
+      // NOW SAVES FOR BOTH FOUNDERS AND MENTORS
       const payload = {
         full_name: formData.full_name,
-        // Only save mentor fields if they are a mentor
-        ...(role === 'mentor' && {
-          industry: formData.industry,
-          experience_years: parseInt(formData.experience_years) || 0,
-          skills: formData.skills,
-          linkedin_url: formData.linkedin_url
-        })
+        industry: formData.industry,
+        experience_years: parseInt(formData.experience_years) || 0,
+        skills: formData.skills,
+        linkedin_url: formData.linkedin_url
       }
 
       const { error } = await supabase.from('users').update(payload).eq('id', user.id)
@@ -90,12 +87,11 @@ export function ProfileSettings() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Profile Settings</h1>
         <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-          Manage your account details and platform preferences.
+          Manage your account details and professional background.
         </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* SHARED SECTION: Basic Info */}
         <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -120,59 +116,57 @@ export function ProfileSettings() {
           </CardContent>
         </Card>
 
-        {/* MENTOR ONLY SECTION: Matching Criteria */}
-        {role === 'mentor' && (
-          <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" /> Mentor Qualifications
-              </CardTitle>
-              <CardDescription>
-                This data powers the matching algorithm. Ensure it is accurate to attract the right founders.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="industry" className="flex items-center gap-2"><Briefcase className="h-3 w-3"/> Primary Industry</Label>
-                  <Input 
-                    id="industry" name="industry" 
-                    placeholder="e.g. FinTech, EdTech, SaaS"
-                    value={formData.industry} onChange={handleChange} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="experience_years">Years of Experience</Label>
-                  <Input 
-                    id="experience_years" name="experience_years" type="number" min="0"
-                    placeholder="e.g. 5, 10, 15"
-                    value={formData.experience_years} onChange={handleChange} 
-                  />
-                </div>
-              </div>
-
+        {/* NOW VISIBLE TO EVERYONE, NOT JUST MENTORS */}
+        <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" /> Professional Background
+            </CardTitle>
+            <CardDescription>
+              This data powers the matching engine. Complete it to find the best connections.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="skills">Core Competencies (Comma separated)</Label>
-                <Textarea 
-                  id="skills" name="skills" 
-                  placeholder="e.g. React Architecture, B2B Sales, Fundraising"
-                  value={formData.skills} onChange={handleChange} 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="linkedin_url" className="flex items-center gap-2"><LinkIcon className="h-3 w-3"/> LinkedIn URL</Label>
+                <Label htmlFor="industry" className="flex items-center gap-2"><Briefcase className="h-3 w-3"/> Primary Industry</Label>
                 <Input 
-                  id="linkedin_url" name="linkedin_url" type="url"
-                  placeholder="https://linkedin.com/in/yourprofile"
-                  value={formData.linkedin_url} onChange={handleChange} 
+                  id="industry" name="industry" 
+                  placeholder="e.g. FinTech, EdTech, SaaS"
+                  value={formData.industry} onChange={handleChange} 
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="experience_years">Years of Experience</Label>
+                <Input 
+                  id="experience_years" name="experience_years" type="number" min="0"
+                  placeholder="e.g. 5, 10, 15"
+                  value={formData.experience_years} onChange={handleChange} 
+                />
+              </div>
+            </div>
 
-            </CardContent>
-          </Card>
-        )}
+            <div className="space-y-2">
+              <Label htmlFor="skills">Core Skills & Tech Stack (Comma separated)</Label>
+              <Textarea 
+                id="skills" name="skills" 
+                placeholder="e.g. React Architecture, B2B Sales, Fundraising"
+                value={formData.skills} onChange={handleChange} 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="linkedin_url" className="flex items-center gap-2"><LinkIcon className="h-3 w-3"/> LinkedIn URL</Label>
+              <Input 
+                id="linkedin_url" name="linkedin_url" type="url"
+                placeholder="https://linkedin.com/in/yourprofile"
+                value={formData.linkedin_url} onChange={handleChange} 
+              />
+            </div>
+
+          </CardContent>
+        </Card>
 
         <div className="flex justify-end">
           <Button type="submit" disabled={saving} className="gap-2">
