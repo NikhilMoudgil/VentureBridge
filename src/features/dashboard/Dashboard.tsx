@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ArrowUpRight, Activity, Users, Lightbulb, Target, Sparkles } from "lucide-react"
+import { ArrowUpRight, Activity, Users, Lightbulb, Target, Sparkles, Inbox, Calendar, MessageSquare } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 const supabase = createClient()
 
-// Placeholder data for the chart to make it look active
 const chartData = [
   { name: "Mon", views: 4 },
   { name: "Tue", views: 12 },
@@ -45,13 +44,122 @@ export function Dashboard() {
     )
   }
 
-  const isFounder = profile?.role === 'founder'
+  const role = profile?.role
   const firstName = profile?.full_name?.split(' ')[0] || "there"
 
+  // ----------------------------------------------------------------------
+  // MENTOR DASHBOARD UI
+  // ----------------------------------------------------------------------
+  if (role === 'mentor') {
+    return (
+      <div className="flex flex-col gap-8 pb-8">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <Badge variant="secondary" className="mb-2 font-mono text-xs uppercase tracking-wider text-zinc-500">
+              Mentor Node • /dashboard
+            </Badge>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Welcome back, {firstName}.
+            </h1>
+            <p className="mt-1 text-zinc-500 dark:text-zinc-400">
+              You have new pending venture matches awaiting your review.
+            </p>
+          </div>
+          <div className="mt-4 flex gap-3 md:mt-0">
+            <Link to="/dashboard/network">
+              <Button className="gap-2">
+                <Users className="h-4 w-4" /> Discover Founders
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardDescription className="font-medium text-zinc-500">Pending Requests</CardDescription>
+              <Inbox className="h-4 w-4 text-zinc-400" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-3xl font-bold">4</CardTitle>
+              <p className="mt-3 font-mono text-xs text-zinc-400">Awaiting your response</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardDescription className="font-medium text-zinc-500">Upcoming Sessions</CardDescription>
+              <Calendar className="h-4 w-4 text-zinc-400" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-3xl font-bold">2</CardTitle>
+              <p className="mt-3 font-mono text-xs text-zinc-400">Scheduled for this week</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-zinc-900 bg-zinc-900 text-zinc-50 shadow-md dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardDescription className="font-medium text-zinc-400 dark:text-zinc-500">Platform Impact</CardDescription>
+              <Activity className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-3xl font-bold">Top 5%</CardTitle>
+              <p className="mt-3 font-mono text-xs text-emerald-400 dark:text-emerald-600">Based on feedback ratings</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Match Requests</CardTitle>
+              <CardDescription>Founders seeking your expertise.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-100 p-3 dark:border-zinc-800">
+                <div>
+                  <h4 className="text-sm font-semibold">AI SaaS Workflow Tool</h4>
+                  <p className="text-xs text-zinc-500">92% Match • Seed Stage</p>
+                </div>
+                <Button size="sm" variant="secondary">Review</Button>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-zinc-100 p-3 dark:border-zinc-800">
+                <div>
+                  <h4 className="text-sm font-semibold">Fintech API Aggregator</h4>
+                  <p className="text-xs text-zinc-500">88% Match • MVP Stage</p>
+                </div>
+                <Button size="sm" variant="secondary">Review</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <CardHeader>
+              <CardTitle className="text-lg">Action Items</CardTitle>
+              <CardDescription>Pending tasks for active mentorships.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-4 rounded-lg border border-zinc-100 p-3 dark:border-zinc-800">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <MessageSquare className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold">Submit Feedback</h4>
+                  <p className="text-xs text-zinc-500">Provide structured feedback for your session with EduNexus.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // ----------------------------------------------------------------------
+  // FOUNDER DASHBOARD UI (Existing)
+  // ----------------------------------------------------------------------
   return (
     <div className="flex flex-col gap-8 pb-8">
-      
-      {/* Header Section */}
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge variant="secondary" className="mb-2 font-mono text-xs uppercase tracking-wider text-zinc-500">
@@ -76,9 +184,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Top Metrics Row */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* Metric 1: Health Score */}
         <Card className="relative overflow-hidden border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader className="pb-2">
             <CardDescription className="font-medium text-zinc-500">Venture Health</CardDescription>
@@ -90,7 +196,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Metric 2: Profile Views */}
         <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardDescription className="font-medium text-zinc-500">Profile Views</CardDescription>
@@ -104,7 +209,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Metric 3: Mentors */}
         <Card className="border-zinc-900 bg-zinc-900 text-zinc-50 shadow-md dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardDescription className="font-medium text-zinc-400 dark:text-zinc-500">Matched Mentors</CardDescription>
@@ -121,10 +225,7 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Main Content Split */}
       <div className="grid gap-4 md:grid-cols-7">
-        
-        {/* Chart Section (Spans 4 columns) */}
         <Card className="md:col-span-4 border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader>
             <CardTitle className="text-lg">Network Engagement</CardTitle>
@@ -142,10 +243,7 @@ export function Dashboard() {
                   </defs>
                   <XAxis dataKey="name" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f4f4f5' }}
-                    itemStyle={{ color: '#f4f4f5' }}
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f4f4f5' }} itemStyle={{ color: '#f4f4f5' }} />
                   <Area type="monotone" dataKey="views" stroke="#52525b" strokeWidth={2} fillOpacity={1} fill="url(#colorViews)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -153,7 +251,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Action Items (Spans 3 columns) */}
         <Card className="md:col-span-3 border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -162,7 +259,6 @@ export function Dashboard() {
             <CardDescription>Tasks required to reach MVP stage.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            
             <div className="flex items-start gap-4 rounded-lg border border-zinc-100 p-3 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <span className="font-mono text-xs font-bold text-zinc-600 dark:text-zinc-400">1</span>
@@ -172,7 +268,6 @@ export function Dashboard() {
                 <p className="text-xs text-zinc-500">Your current pitch is missing a clear target audience.</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4 rounded-lg border border-zinc-100 p-3 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <span className="font-mono text-xs font-bold text-zinc-600 dark:text-zinc-400">2</span>
@@ -182,10 +277,8 @@ export function Dashboard() {
                 <p className="text-xs text-zinc-500">You have 3 new 90%+ matches in the Network feed.</p>
               </div>
             </div>
-
           </CardContent>
         </Card>
-
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/app/AuthProvider";
 import { createClient } from "@/lib/client";
@@ -12,11 +13,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "../../components/ModeToggle";
+
 const supabase = createClient();
 
 export function DashboardLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [role, setRole] = useState<'founder' | 'mentor' | null>(null);
+
+  // Fetch the role to control the navigation links
+  useEffect(() => {
+    async function fetchRole() {
+      if (!user) return;
+      const { data } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+      if (data) setRole(data.role);
+    }
+    fetchRole();
+  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -31,7 +44,6 @@ export function DashboardLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
       {/* --- HEADER --- */}
-      {/* --- HEADER --- */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md dark:bg-zinc-950/80">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
           
@@ -43,8 +55,15 @@ export function DashboardLayout() {
           {/* 2. Desktop Navigation */}
           <nav className="hidden gap-6 md:flex">
             <Link to="/dashboard" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Home</Link>
-            <Link to="/dashboard/idealab" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">IdeaLab</Link>
-            <Link to="/dashboard/ventures" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">My Ventures</Link>
+            
+            {/* STRICT RBAC: Only Founders see these links */}
+            {role === 'founder' && (
+              <>
+                <Link to="/dashboard/idealab" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">IdeaLab</Link>
+                <Link to="/dashboard/ventures" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">My Ventures</Link>
+              </>
+            )}
+
             <Link to="/dashboard/network" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Network</Link>
             <Link to="/dashboard/messages" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Messages</Link>
           </nav>
@@ -71,6 +90,8 @@ export function DashboardLayout() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Account</p>
                     <p className="text-xs leading-none text-zinc-500">{user?.email}</p>
+                    {/* Display the role in the dropdown for clarity */}
+                    <p className="text-xs font-mono text-indigo-500 capitalize">{role}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

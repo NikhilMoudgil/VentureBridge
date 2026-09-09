@@ -19,16 +19,26 @@ export function Onboarding() {
     setErrorMsg(null)
 
     try {
-      // 1. Update the base user role
-      const { error: userError } = await supabase.from('users').update({ role }).eq('id', user.id)
+      // 1. Upsert the base user record with ONLY columns guaranteed to exist in schema
+      const { error: userError } = await supabase
+        .from('users')
+        .upsert({ 
+          id: user.id, 
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+          role 
+        })
       if (userError) throw userError
 
-      // 2. Create the specific profile row
+      // 2. Upsert the specific profile row safely to prevent schema/constraint conflicts
       if (role === 'founder') {
-        const { error: founderError } = await supabase.from('founders').insert({ id: user.id })
+        const { error: founderError } = await supabase
+          .from('founders')
+          .upsert({ id: user.id })
         if (founderError) throw founderError
       } else {
-        const { error: mentorError } = await supabase.from('mentors').insert({ id: user.id })
+        const { error: mentorError } = await supabase
+          .from('mentors')
+          .upsert({ id: user.id })
         if (mentorError) throw mentorError
       }
 
@@ -50,7 +60,6 @@ export function Onboarding() {
           <p className="mt-2 text-zinc-500">How do you want to use the platform?</p>
         </div>
 
-        {/* --- NEW: Error Display --- */}
         {errorMsg && (
           <div className="rounded-md bg-red-100 p-4 text-center text-sm font-medium text-red-700">
             {errorMsg}

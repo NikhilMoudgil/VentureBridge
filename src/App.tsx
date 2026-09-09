@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react"
 import { Routes, Route, Link, Navigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { LoginForm } from "@/fearures/auth/LoginForm"
-import { SignupForm } from "@/fearures/auth/SignupForm"
-import { DashboardLayout } from "@/fearures/dashboard/DashboardLayout"
-import { Onboarding } from "@/fearures/auth/Onboarding"
+import { LoginForm } from "@/features/auth/LoginForm"
+import { SignupForm } from "@/features/auth/SignupForm"
+import { DashboardLayout } from "@/features/dashboard/DashboardLayout"
+import { Onboarding } from "@/features/auth/Onboarding"
 import { AuthProvider, useAuth } from "@/app/AuthProvider"
 import { createClient } from "@/lib/client"
-import { ProfileSettings } from "@/fearures/profiles/ProfileSettings"
-import { Dashboard } from "@/fearures/dashboard/Dashboard"
+import { ProfileSettings } from "@/features/profiles/ProfileSettings"
+import { Dashboard } from "@/features/dashboard/Dashboard"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "./app/ThemeProvider"
-import { IdeaLab } from "@/fearures/ideas/IdeaLab"
-import { MyVentures } from "@/fearures/ideas/MyVentures"
+import { IdeaLab } from "@/features/ideas/IdeaLab"
+import { MyVentures } from "@/features/ideas/MyVentures"
+import { NetworkDiscovery } from "@/features/matching/NetworkDiscovery"
 const supabase = createClient()
 
 // --- Route Guard with Profile Checking ---
@@ -130,6 +131,7 @@ export default function App() {
           <Route path="profile" element={<ProfileSettings />} />
           <Route path="ventures" element={<MyVentures />} />
           <Route path="idealab" element={<IdeaLab />} />
+          <Route path="network" element={<NetworkDiscovery />} />
         </Route>
       </Routes>
       <Toaster/>
