@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, X, ShieldAlert, Sparkles, Award } from "lucide-react"
+import { Search, UserPlus, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, X, ShieldAlert, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 const supabase = createClient()
@@ -34,7 +34,6 @@ export function NetworkDiscovery() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
 
-  // Modal State specifically for viewing mentor profiles (for founders) or pitches (for mentors)
   const [selectedProfileModal, setSelectedProfileModal] = useState<NetworkProfile | null>(null)
 
   useEffect(() => {
@@ -118,26 +117,33 @@ export function NetworkDiscovery() {
     return Math.min(100, Math.max(35, score))
   }
 
+  // UPDATED: Integrates the robust upsert logic and local state update
   const handleConnect = async (targetId: string, targetName: string) => {
     if (!user || currentUserRole !== 'founder') return
 
     try {
       const { error } = await supabase
         .from('connections')
-        .upsert({ 
-          founder_id: user.id, 
-          mentor_id: targetId, 
-          status: 'pending' 
-        }, { onConflict: 'founder_id,mentor_id' })
+        .upsert(
+          { 
+            founder_id: user.id, 
+            mentor_id: targetId, 
+            status: 'pending' 
+          }, 
+          { onConflict: 'founder_id,mentor_id' }
+        )
 
       if (error) throw error
 
       toast.success(`Connection request sent to ${targetName}`)
+      
+      // Update local state so the UI instantly switches to the "Pending" button
       setConnections(prev => [
         ...prev.filter(c => !(c.founder_id === user.id && c.mentor_id === targetId)),
         { founder_id: user.id, mentor_id: targetId, status: 'pending' }
       ])
     } catch (err: any) {
+      console.error('Connection failed:', err.message)
       toast.error(err.message || "Failed to send connection request.")
     }
   }
@@ -295,7 +301,6 @@ export function NetworkDiscovery() {
                   {currentUserRole === 'founder' ? 'View Profile' : 'View Pitch'}
                 </Button>
 
-                {/* FOUNDER ACTIONS */}
                 {currentUserRole === 'founder' && !status && (
                   <Button onClick={() => handleConnect(profile.id, profile.full_name)} className="w-1/2 gap-1 text-xs">
                     <UserPlus className="h-3.5 w-3.5" /> Connect
@@ -312,7 +317,6 @@ export function NetworkDiscovery() {
                   </Button>
                 )}
 
-                {/* MENTOR ACTIONS */}
                 {currentUserRole === 'mentor' && !status && (
                   <div className="w-1/2 text-xs text-zinc-400 flex items-center justify-center">No request</div>
                 )}
@@ -337,9 +341,6 @@ export function NetworkDiscovery() {
         })}
       </div>
 
-      {/* ======================================================== */}
-      {/* DETAILED VIEW MODAL POPUP FOR FOUNDERS / MENTORS         */}
-      {/* ======================================================== */}
       {selectedProfileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-6 relative">
@@ -367,7 +368,6 @@ export function NetworkDiscovery() {
 
             <div className="space-y-4 text-sm max-h-[60vh] overflow-y-auto pr-1">
               
-              {/* MENTOR DETAILS VIEW (Triggered when Founder clicks View Profile) */}
               {selectedProfileModal.role === 'mentor' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -388,7 +388,6 @@ export function NetworkDiscovery() {
                 </>
               )}
 
-              {/* FOUNDER PITCH VIEW (Triggered when Mentor clicks View Pitch) */}
               {selectedProfileModal.role === 'founder' && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50 space-y-1">
