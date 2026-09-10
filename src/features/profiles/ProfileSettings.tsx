@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Save, User, Briefcase, Link as LinkIcon, Award } from "lucide-react"
+import { Save, User, Briefcase, Award, Rocket } from "lucide-react"
 
 const supabase = createClient()
 
@@ -21,29 +21,49 @@ export function ProfileSettings() {
   const [formData, setFormData] = useState({
     full_name: "",
     industry: "",
-    experience_years: "",
-    skills: "",
-    linkedin_url: ""
+    startup_stage: "",
+    funding_goal: "",
+    skills: "", // Used for tech stack/needed mentor expertise
+    experience_years: "" // Mentor only
   })
 
   useEffect(() => {
     async function loadProfile() {
       if (!user) return
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle()
 
-      if (data) {
-        setRole(data.role)
-        setFormData({
-          full_name: data.full_name || "",
-          industry: data.industry || "",
-          experience_years: data.experience_years ? data.experience_years.toString() : "",
-          skills: data.skills || "",
-          linkedin_url: data.linkedin_url || ""
-        })
+      // 1. Get user role
+      const { data: baseUser } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+      
+      if (baseUser) {
+        const userRole = baseUser.role
+        setRole(userRole)
+
+        // 2. Fetch from separated tables
+        if (userRole === 'founder') {
+          const { data } = await supabase.from('founders').select('*').eq('id', user.id).maybeSingle()
+          if (data) {
+            setFormData({
+              full_name: data.full_name || "",
+              industry: data.industry || "",
+              startup_stage: data.startup_stage || "",
+              funding_goal: data.funding_goal || "",
+              skills: data.skills || "",
+              experience_years: ""
+            })
+          }
+        } else if (userRole === 'mentor') {
+          const { data } = await supabase.from('mentors').select('*').eq('id', user.id).maybeSingle()
+          if (data) {
+            setFormData({
+              full_name: data.full_name || "",
+              industry: data.industry || "",
+              startup_stage: "",
+              funding_goal: "",
+              skills: data.skills || "",
+              experience_years: data.experience_years ? data.experience_years.toString() : ""
+            })
+          }
+        }
       }
       setLoading(false)
     }
@@ -56,22 +76,29 @@ export function ProfileSettings() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    if (!user || !role) return
     setSaving(true)
 
     try {
-      // NOW SAVES FOR BOTH FOUNDERS AND MENTORS
-      const payload = {
-        full_name: formData.full_name,
-        industry: formData.industry,
-        experience_years: parseInt(formData.experience_years) || 0,
-        skills: formData.skills,
-        linkedin_url: formData.linkedin_url
+      if (role === 'founder') {
+        const { error } = await supabase.from('founders').update({
+          full_name: formData.full_name,
+          industry: formData.industry,
+          startup_stage: formData.startup_stage,
+          funding_goal: formData.funding_goal,
+          skills: formData.skills, // Storing tech stack/mentor needs
+        }).eq('id', user.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('mentors').update({
+          full_name: formData.full_name,
+          industry: formData.industry,
+          experience_years: parseInt(formData.experience_years) || 0,
+          skills: formData.skills,
+        }).eq('id', user.id)
+        if (error) throw error
       }
-
-      const { error } = await supabase.from('users').update(payload).eq('id', user.id)
       
-      if (error) throw error
       toast.success("Profile updated successfully!")
     } catch (error: any) {
       toast.error(error.message || "Failed to update profile.")
@@ -87,7 +114,7 @@ export function ProfileSettings() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Profile Settings</h1>
         <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-          Manage your account details and professional background.
+          Manage your account details and matching parameters.
         </p>
       </div>
 
@@ -116,14 +143,14 @@ export function ProfileSettings() {
           </CardContent>
         </Card>
 
-        {/* NOW VISIBLE TO EVERYONE, NOT JUST MENTORS */}
         <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5" /> Professional Background
+              {role === 'founder' ? <Rocket className="h-5 w-5" /> : <Award className="h-5 w-5" />} 
+              {role === 'founder' ? "Venture & Matching Parameters" : "Professional Background"}
             </CardTitle>
             <CardDescription>
-              This data powers the matching engine. Complete it to find the best connections.
+              This data powers the matching engine to pair you accurately.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -137,34 +164,49 @@ export function ProfileSettings() {
                   value={formData.industry} onChange={handleChange} 
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="experience_years">Years of Experience</Label>
-                <Input 
-                  id="experience_years" name="experience_years" type="number" min="0"
-                  placeholder="e.g. 5, 10, 15"
-                  value={formData.experience_years} onChange={handleChange} 
-                />
-              </div>
+
+              {role === 'mentor' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="experience_years">Years of Experience</Label>
+                  <Input 
+                    id="experience_years" name="experience_years" type="number" min="0"
+                    placeholder="e.g. 5, 10, 15"
+                    value={formData.experience_years} onChange={handleChange} 
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="startup_stage">Startup Stage</Label>
+                  <Input 
+                    id="startup_stage" name="startup_stage" 
+                    placeholder="e.g. Idea, MVP, Pre-Seed, Seed"
+                    value={formData.startup_stage} onChange={handleChange} 
+                  />
+                </div>
+              )}
             </div>
 
+            {role === 'founder' && (
+              <div className="space-y-2">
+                <Label htmlFor="funding_goal">Funding Goal / Status</Label>
+                <Input 
+                  id="funding_goal" name="funding_goal" 
+                  placeholder="e.g. Bootstrapped, Raising Pre-Seed ($500k)"
+                  value={formData.funding_goal} onChange={handleChange} 
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="skills">Core Skills & Tech Stack (Comma separated)</Label>
+              <Label htmlFor="skills">
+                {role === 'founder' ? "Tech Stack / Mentorship Needs (Comma separated)" : "Core Skills & Tech Stack"}
+              </Label>
               <Textarea 
                 id="skills" name="skills" 
-                placeholder="e.g. React Architecture, B2B Sales, Fundraising"
+                placeholder={role === 'founder' ? "e.g. React, Fundraising, Go-To-Market" : "e.g. React Architecture, B2B Sales"}
                 value={formData.skills} onChange={handleChange} 
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="linkedin_url" className="flex items-center gap-2"><LinkIcon className="h-3 w-3"/> LinkedIn URL</Label>
-              <Input 
-                id="linkedin_url" name="linkedin_url" type="url"
-                placeholder="https://linkedin.com/in/yourprofile"
-                value={formData.linkedin_url} onChange={handleChange} 
-              />
-            </div>
-
           </CardContent>
         </Card>
 

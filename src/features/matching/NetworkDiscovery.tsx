@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Filter, UserPlus, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, X, Target } from "lucide-react"
+import { Search, UserPlus, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, X, ShieldAlert, Sparkles, Award } from "lucide-react"
 import { toast } from "sonner"
 
 const supabase = createClient()
@@ -14,117 +14,70 @@ const supabase = createClient()
 type NetworkProfile = {
   id: string
   full_name: string
-  role: string
+  role: 'founder' | 'mentor'
   industry?: string
+  startup_stage?: string
+  funding_goal?: string
   experience_years?: number
   skills?: string
   is_verified?: boolean
   idea?: any 
-  matchScore?: number 
-}
-
-// --- THE MATCHING ALGORITHM ---
-function calculateMatchScore(currentUserContext: any, targetProfile: NetworkProfile): number {
-  let score = 45 
-
-  if (!currentUserContext) return score
-
-  try {
-    const myIndustry = (currentUserContext.industry || "").toLowerCase()
-    const mySkills = (currentUserContext.skills || "").toLowerCase()
-    
-    const targetIndustry = (targetProfile.industry || "").toLowerCase()
-    const targetSkills = (targetProfile.skills || "").toLowerCase()
-
-    if (myIndustry && targetIndustry && (myIndustry.includes(targetIndustry) || targetIndustry.includes(myIndustry))) {
-      score += 30
-    }
-
-    if (mySkills && targetSkills) {
-      const mySkillsArray = mySkills.split(',').map((s: string) => s.trim())
-      const hasSkillMatch = mySkillsArray.some((skill: string) => skill.length > 2 && targetSkills.includes(skill))
-      if (hasSkillMatch) score += 15
-    }
-
-    if (currentUserContext.role === 'mentor' && targetProfile.idea) {
-      const ideaMarket = (targetProfile.idea.target_market || "").toLowerCase()
-      if (ideaMarket && myIndustry && ideaMarket.includes(myIndustry)) score += 10
-    } else if (currentUserContext.role === 'founder' && currentUserContext.idea) {
-      const ideaMarket = (targetProfile.idea.target_market || "").toLowerCase()
-      if (ideaMarket && targetIndustry && ideaMarket.includes(targetIndustry)) score += 10
-    }
-
-    if (targetProfile.experience_years) {
-      if (targetProfile.experience_years >= 10) score += 10
-      else if (targetProfile.experience_years >= 5) score += 5
-    }
-
-  } catch (e) {
-    console.error("Match calculation error:", e)
-  }
-
-  return Math.min(score, 99)
 }
 
 export function NetworkDiscovery() {
   const { user } = useAuth()
   const [currentUserRole, setCurrentUserRole] = useState<'founder' | 'mentor' | null>(null)
+  const [currentUserProfile, setCurrentUserProfile] = useState<NetworkProfile | null>(null)
+  const [isVerified, setIsVerified] = useState<boolean>(true)
   const [profiles, setProfiles] = useState<NetworkProfile[]>([])
   const [connections, setConnections] = useState<any[]>([]) 
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  
-  const [selectedProfile, setSelectedProfile] = useState<NetworkProfile | null>(null)
+
+  // Modal State specifically for viewing mentor profiles (for founders) or pitches (for mentors)
+  const [selectedProfileModal, setSelectedProfileModal] = useState<NetworkProfile | null>(null)
 
   useEffect(() => {
     async function fetchNetwork() {
       if (!user) return
 
-      const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle()
+      const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
       
       if (userData) {
         const role = userData.role
         setCurrentUserRole(role)
-        const targetRole = role === 'founder' ? 'mentor' : 'founder'
-
-        let currentUserContext = { ...userData, idea: null }
 
         if (role === 'founder') {
-          const { data: myIdea } = await supabase.from('ideas').select('*').eq('id', user.id).maybeSingle()
-          currentUserContext.idea = myIdea
-        }
+          const { data: founderData } = await supabase.from('founders').select('*').eq('id', user.id).maybeSingle()
+          if (founderData) setCurrentUserProfile({ ...founderData, role: 'founder' })
 
-        let query = supabase
-          .from('users')
-          .select('id, full_name, role, industry, experience_years, skills, is_verified')
-          .eq('role', targetRole)
-          .neq('id', user.id)
+          const { data: mentorsData } = await supabase
+            .from('mentors')
+            .select('*')
+            .eq('is_verified', true)
 
-        if (targetRole === 'mentor') {
-          query = query.not('industry', 'is', null).eq('is_verified', true)
-        }
-
-        const { data: networkData } = await query
-
-        if (networkData) {
-          let enrichedProfiles = [...networkData]
-
-          if (targetRole === 'founder') {
-            const founderIds = networkData.map(p => p.id)
-            const { data: ideasData } = await supabase.from('ideas').select('*').in('id', founderIds)
-            
-            enrichedProfiles = networkData.map(p => ({
-              ...p,
-              idea: ideasData?.find(i => i.id === p.id) 
-            }))
+          if (mentorsData) {
+            setProfiles(mentorsData.map(m => ({ ...m, role: 'mentor' })))
+          }
+        } else if (role === 'mentor') {
+          const { data: mentorData } = await supabase.from('mentors').select('*').eq('id', user.id).maybeSingle()
+          if (mentorData) {
+            setCurrentUserProfile({ ...mentorData, role: 'mentor' })
+            setIsVerified(mentorData.is_verified ?? false)
           }
 
-          const scoredProfiles = enrichedProfiles.map(p => ({
-            ...p,
-            matchScore: calculateMatchScore(currentUserContext, p)
-          })).sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+          const { data: foundersData } = await supabase.from('founders').select('*')
 
-          setProfiles(scoredProfiles)
+          if (foundersData) {
+            const founderIds = foundersData.map(f => f.id)
+            const { data: ideasData } = await supabase.from('ideas').select('*').in('id', founderIds)
+
+            setProfiles(foundersData.map(f => ({
+              ...f,
+              role: 'founder',
+              idea: ideasData?.find(i => i.id === f.id)
+            })))
+          }
         }
 
         const { data: connData } = await supabase
@@ -140,8 +93,76 @@ export function NetworkDiscovery() {
     fetchNetwork()
   }, [user])
 
-  // FIXED: Bidirectional Upsert to prevent unique constraint crashes on re-connect
+  const calculateMatchScore = (targetProfile: NetworkProfile) => {
+    if (!currentUserProfile) return 50
+    let score = 40
+
+    if (
+      currentUserProfile.industry &&
+      targetProfile.industry &&
+      currentUserProfile.industry.trim().toLowerCase() === targetProfile.industry.trim().toLowerCase()
+    ) {
+      score += 30
+    }
+
+    if (currentUserProfile.skills && targetProfile.skills) {
+      const userSkills = currentUserProfile.skills.toLowerCase().split(',').map(s => s.trim())
+      const targetSkills = targetProfile.skills.toLowerCase().split(',').map(s => s.trim())
+      const sharedSkills = userSkills.filter(skill => targetSkills.includes(skill))
+      
+      if (sharedSkills.length > 0) {
+        score += Math.min(30, sharedSkills.length * 15)
+      }
+    }
+
+    return Math.min(100, Math.max(35, score))
+  }
+
   const handleConnect = async (targetId: string, targetName: string) => {
+    if (!user || currentUserRole !== 'founder') return
+
+    try {
+      const { error } = await supabase
+        .from('connections')
+        .upsert({ 
+          founder_id: user.id, 
+          mentor_id: targetId, 
+          status: 'pending' 
+        }, { onConflict: 'founder_id,mentor_id' })
+
+      if (error) throw error
+
+      toast.success(`Connection request sent to ${targetName}`)
+      setConnections(prev => [
+        ...prev.filter(c => !(c.founder_id === user.id && c.mentor_id === targetId)),
+        { founder_id: user.id, mentor_id: targetId, status: 'pending' }
+      ])
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send connection request.")
+    }
+  }
+
+  const handleUpdateStatus = async (founderId: string, newStatus: 'accepted' | 'declined', founderName: string) => {
+    if (!user || currentUserRole !== 'mentor') return
+
+    try {
+      const { error } = await supabase
+        .from('connections')
+        .update({ status: newStatus })
+        .match({ founder_id: founderId, mentor_id: user.id })
+
+      if (error) throw error
+
+      toast.success(`Request from ${founderName} has been ${newStatus}!`)
+      setConnections(prev => prev.map(c => 
+        c.founder_id === founderId && c.mentor_id === user.id ? { ...c, status: newStatus } : c
+      ))
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update status.")
+    }
+  }
+
+  const handleDisconnect = async (targetId: string, targetName: string) => {
     if (!user || !currentUserRole) return
 
     const f_id = currentUserRole === 'founder' ? user.id : targetId
@@ -150,53 +171,23 @@ export function NetworkDiscovery() {
     try {
       const { error } = await supabase
         .from('connections')
-        .upsert({ 
-          founder_id: f_id, 
-          mentor_id: m_id, 
-          status: 'pending' 
-        }, { onConflict: 'founder_id,mentor_id' })
-
-      if (error) throw error
-
-      toast.success(`Connection request sent to ${targetName}`)
-      
-      setConnections(prev => [
-        ...prev.filter(c => !(c.founder_id === f_id && c.mentor_id === m_id)),
-        { founder_id: f_id, mentor_id: m_id, status: 'pending' }
-      ])
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send connection request.")
-    }
-  }
-
-  // FIXED: Bidirectional Delete to completely wipe connection rows from either side
-  const handleDisconnect = async (targetId: string, targetName: string) => {
-    if (!user) return
-
-    try {
-      const { error } = await supabase
-        .from('connections')
         .delete()
-        .or(`and(founder_id.eq.${user.id},mentor_id.eq.${targetId}),and(founder_id.eq.${targetId},mentor_id.eq.${user.id})`)
+        .match({ founder_id: f_id, mentor_id: m_id })
 
       if (error) throw error
 
-      toast.success(`Disconnected from ${targetName}`)
-      
-      setConnections(prev => prev.filter(c => 
-        !((c.founder_id === user.id && c.mentor_id === targetId) || (c.founder_id === targetId && c.mentor_id === user.id))
-      ))
+      toast.success(`Removed connection with ${targetName}`)
+      setConnections(prev => prev.filter(c => !(c.founder_id === f_id && c.mentor_id === m_id)))
     } catch (err: any) {
       toast.error(err.message || "Failed to remove connection.")
     }
   }
 
-  // FIXED: Bidirectional Status Checker
-  const getConnectionStatus = (targetId: string) => {
-    const conn = connections.find(c => 
-      (c.founder_id === user?.id && c.mentor_id === targetId) || 
-      (c.founder_id === targetId && c.mentor_id === user?.id)
-    )
+  const getConnectionStatus = (profileId: string) => {
+    const f_id = currentUserRole === 'founder' ? user?.id : profileId
+    const m_id = currentUserRole === 'mentor' ? user?.id : profileId
+
+    const conn = connections.find(c => c.founder_id === f_id && c.mentor_id === m_id)
     return conn ? conn.status : null
   }
 
@@ -204,143 +195,140 @@ export function NetworkDiscovery() {
   const filteredProfiles = profiles.filter(p => 
     (p.full_name || "").toLowerCase().includes(searchLower) ||
     (p.industry || "").toLowerCase().includes(searchLower) ||
-    (p.skills || "").toLowerCase().includes(searchLower) ||
-    (p.idea?.target_market || "").toLowerCase().includes(searchLower)
+    (p.skills || "").toLowerCase().includes(searchLower)
   )
 
-  if (loading) return <div className="p-8 text-center text-zinc-500">Executing matching algorithm...</div>
+  if (loading) return <div className="p-8 text-center text-zinc-500">Loading network discovery...</div>
+
+  if (currentUserRole === 'mentor' && !isVerified) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center p-6 text-center">
+        <div className="rounded-full bg-amber-100 p-4 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 mb-4">
+          <ShieldAlert className="h-10 w-10" />
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">Account Under Review</h2>
+        <p className="mt-2 text-zinc-500 dark:text-zinc-400">
+          Your mentor profile is currently pending verification by an administrator.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-8 relative">
-      
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Network Discovery</h1>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Network Discovery & Matching</h1>
           <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-            {currentUserRole === 'founder' 
-              ? "Find technical and strategic mentors matched to your profile." 
-              : "Discover high-potential founders matched to your industry expertise."}
+            {currentUserRole === 'founder' ? "Connect with mentors tailored to your industry and tech stack." : "Review incoming startup connection requests."}
           </p>
         </div>
-        
         <div className="flex w-full items-center gap-2 md:w-auto">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
             <Input 
-              placeholder="Search by name, industry, or market..." 
+              placeholder="Search network..." 
               className="pl-9" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
         </div>
       </div>
-
-      {filteredProfiles.length === 0 && (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/50">
-          <Search className="mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">No profiles found</h3>
-          <p className="text-sm text-zinc-500">Try adjusting your search filters.</p>
-        </div>
-      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredProfiles.map((profile) => {
           const status = getConnectionStatus(profile.id)
-          const score = profile.matchScore || 0
-          
-          let scoreColor = "text-zinc-500"
-          if (score >= 80) scoreColor = "text-emerald-600 dark:text-emerald-500 font-bold"
-          else if (score >= 60) scoreColor = "text-amber-600 dark:text-amber-500 font-semibold"
+          const matchScore = calculateMatchScore(profile)
 
           return (
-            <Card key={profile.id} className="group overflow-hidden border-zinc-200 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:hover:border-zinc-700 dark:bg-zinc-950">
-              <CardHeader className="flex flex-row items-start gap-4 pb-4">
-                <Avatar className="h-12 w-12 border border-zinc-200 dark:border-zinc-800">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`} />
-                  <AvatarFallback>{(profile.full_name || "??").substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <CardTitle className="text-lg truncate max-w-[180px]">{profile.full_name || "Anonymous User"}</CardTitle>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
-                      {profile.role}
-                    </Badge>
-                    <span className={`text-xs ${scoreColor}`}>
-                      {score}% Match
-                    </span>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pb-4 h-20">
-                {profile.role === 'mentor' ? (
-                  <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span className="truncate">Specializes in {profile.industry || "General Strategy"}</span>
+            <Card key={profile.id} className="group overflow-hidden border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-between">
+              <div>
+                <CardHeader className="flex flex-row items-start justify-between pb-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12 border">
+                      <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`} />
+                      <AvatarFallback>{(profile.full_name || "??").substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <CardTitle className="text-lg truncate max-w-[140px]">{profile.full_name || "Anonymous"}</CardTitle>
+                      <Badge variant="secondary" className="font-mono text-[10px] uppercase mt-1 w-fit">
+                        {profile.role}
+                      </Badge>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 px-2.5 py-1 rounded-full text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+                    <Sparkles className="h-3 w-3" />
+                    <span>{matchScore}% Match</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pb-4 space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 shrink-0 text-zinc-400" />
+                    <span className="truncate">Industry: {profile.industry || "General Strategy"}</span>
+                  </div>
+                  {profile.role === 'mentor' && (
                     <div className="flex items-center gap-2">
                       <GraduationCap className="h-4 w-4 shrink-0 text-zinc-400" />
                       <span>{profile.experience_years ? `${profile.experience_years}+ Years Experience` : "Experience unlisted"}</span>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  )}
+                  {profile.role === 'founder' && (
                     <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span className="truncate">
-                        {profile.industry ? `Background in ${profile.industry}` : `Building in ${profile.idea?.target_market || "Stealth"}`}
+                      <span className="text-xs bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded text-zinc-500">
+                        Stage: {profile.startup_stage || "Early Idea"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span>{profile.idea?.problem ? "Idea Validated" : "Ideation Stage"}</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
+                  )}
+                </CardContent>
+              </div>
 
               <CardFooter className="border-t bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50 flex gap-2">
                 <Button 
                   variant="outline" 
-                  className="w-1/2 gap-2 bg-white dark:bg-zinc-950"
-                  onClick={() => setSelectedProfile(profile)}
+                  className="w-1/2 gap-1 bg-white dark:bg-zinc-950 text-xs"
+                  onClick={() => setSelectedProfileModal(profile)}
                 >
-                  <FileText className="h-4 w-4" /> 
-                  {profile.role === 'founder' ? 'View Pitch' : 'Profile'}
+                  <FileText className="h-3.5 w-3.5" /> 
+                  {currentUserRole === 'founder' ? 'View Profile' : 'View Pitch'}
                 </Button>
 
-                {!status && (
-                  <Button onClick={() => handleConnect(profile.id, profile.full_name)} className="w-1/2 gap-2">
-                    <UserPlus className="h-4 w-4" /> Connect
+                {/* FOUNDER ACTIONS */}
+                {currentUserRole === 'founder' && !status && (
+                  <Button onClick={() => handleConnect(profile.id, profile.full_name)} className="w-1/2 gap-1 text-xs">
+                    <UserPlus className="h-3.5 w-3.5" /> Connect
                   </Button>
                 )}
-                {status === 'pending' && (
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => handleDisconnect(profile.id, profile.full_name)}
-                    className="w-1/2 gap-2 px-0 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-500 group transition-colors"
-                  >
-                    <Clock className="h-4 w-4 group-hover:hidden" /> 
-                    <X className="h-4 w-4 hidden group-hover:block" />
-                    <span className="group-hover:hidden">Pending</span>
-                    <span className="hidden group-hover:block">Cancel</span>
+                {currentUserRole === 'founder' && status === 'pending' && (
+                  <Button variant="secondary" onClick={() => handleDisconnect(profile.id, profile.full_name)} className="w-1/2 hover:bg-red-50 hover:text-red-600 text-xs px-1">
+                    <Clock className="h-3.5 w-3.5 mr-1" /> Pending
                   </Button>
                 )}
-                {status === 'accepted' && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleDisconnect(profile.id, profile.full_name)}
-                    className="w-1/2 gap-2 px-0 border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:bg-emerald-900/10 dark:text-emerald-500 dark:hover:bg-red-900/20 dark:hover:border-red-900/50 group transition-all"
-                  >
-                    <CheckCircle2 className="h-4 w-4 group-hover:hidden" /> 
-                    <X className="h-4 w-4 hidden group-hover:block" />
-                    <span className="group-hover:hidden">Connected</span>
-                    <span className="hidden group-hover:block">Disconnect</span>
+                {currentUserRole === 'founder' && status === 'accepted' && (
+                  <Button variant="outline" onClick={() => handleDisconnect(profile.id, profile.full_name)} className="w-1/2 border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-red-50 hover:text-red-600 text-xs px-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
+                  </Button>
+                )}
+
+                {/* MENTOR ACTIONS */}
+                {currentUserRole === 'mentor' && !status && (
+                  <div className="w-1/2 text-xs text-zinc-400 flex items-center justify-center">No request</div>
+                )}
+                {currentUserRole === 'mentor' && status === 'pending' && (
+                  <div className="flex gap-1 w-1/2">
+                    <Button size="sm" className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-1" onClick={() => handleUpdateStatus(profile.id, 'accepted', profile.full_name)}>
+                      Accept
+                    </Button>
+                    <Button size="sm" variant="outline" className="w-1/2 text-red-600 hover:bg-red-50 text-[10px] px-1" onClick={() => handleUpdateStatus(profile.id, 'declined', profile.full_name)}>
+                      Decline
+                    </Button>
+                  </div>
+                )}
+                {currentUserRole === 'mentor' && status === 'accepted' && (
+                  <Button variant="outline" onClick={() => handleDisconnect(profile.id, profile.full_name)} className="w-1/2 border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-red-50 hover:text-red-600 text-xs px-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
                   </Button>
                 )}
               </CardFooter>
@@ -349,149 +337,93 @@ export function NetworkDiscovery() {
         })}
       </div>
 
-      {selectedProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
+      {/* ======================================================== */}
+      {/* DETAILED VIEW MODAL POPUP FOR FOUNDERS / MENTORS         */}
+      {/* ======================================================== */}
+      {selectedProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-6 relative">
             
-            <div className="flex items-start justify-between p-6 border-b border-zinc-100 dark:border-zinc-900">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 border border-zinc-200 dark:border-zinc-800">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${selectedProfile.full_name}`} />
-                  <AvatarFallback>{(selectedProfile.full_name || "??").substring(0, 2).toUpperCase()}</AvatarFallback>
+            <div className="flex items-start justify-between border-b pb-4 dark:border-zinc-800">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-14 w-14 border-2 border-indigo-500/20">
+                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${selectedProfileModal.full_name}`} />
+                  <AvatarFallback>{(selectedProfileModal.full_name || "??").substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-xl font-bold">{selectedProfile.full_name}</h2>
+                  <h3 className="text-xl font-bold tracking-tight">{selectedProfileModal.full_name}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">{selectedProfile.role}</Badge>
-                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-500">
-                      {selectedProfile.matchScore}% Match
-                    </span>
+                    <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
+                      {selectedProfileModal.role}
+                    </Badge>
+                    <span className="text-xs text-zinc-500">Match Compatibility: {calculateMatchScore(selectedProfileModal)}%</span>
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedProfile(null)}
-                className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-full transition-colors"
-              >
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedProfileModal(null)}>
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-8">
+            <div className="space-y-4 text-sm max-h-[60vh] overflow-y-auto pr-1">
               
-              {selectedProfile.role === 'founder' ? (
+              {/* MENTOR DETAILS VIEW (Triggered when Founder clicks View Profile) */}
+              {selectedProfileModal.role === 'mentor' && (
                 <>
-                  <div>
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2 uppercase tracking-wider">Elevator Pitch</h3>
-                    <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/50">
-                      {selectedProfile.idea?.elevator_pitch || "This founder hasn't added an elevator pitch to their IdeaLab yet."}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Industry</span>
+                      <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.industry || "General Strategy"}</p>
+                    </div>
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Experience</span>
+                      <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.experience_years ? `${selectedProfileModal.experience_years}+ Years` : "Unlisted"}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50 space-y-2">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Core Skills & Expertise</span>
+                    <p className="text-zinc-700 dark:text-zinc-300">{selectedProfileModal.skills || "No specific skills highlighted yet."}</p>
+                  </div>
+                </>
+              )}
+
+              {/* FOUNDER PITCH VIEW (Triggered when Mentor clicks View Pitch) */}
+              {selectedProfileModal.role === 'founder' && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50 space-y-1">
+                    <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">Elevator Pitch / Solution</span>
+                    <p className="text-zinc-800 dark:text-zinc-200 font-medium">
+                      {selectedProfileModal.idea?.elevator_pitch || selectedProfileModal.idea?.solution || "No pitch details provided yet."}
                     </p>
                   </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2 uppercase tracking-wider flex items-center gap-2">
-                        <Target className="h-4 w-4" /> Target Market
-                      </h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {selectedProfile.idea?.target_market || "Not specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2 uppercase tracking-wider flex items-center gap-2">
-                        <Briefcase className="h-4 w-4" /> Founder Background
-                      </h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {selectedProfile.industry || "Not specified"}
-                      </p>
-                    </div>
+
+                  <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50 space-y-1">
+                    <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider">Problem Being Solved</span>
+                    <p className="text-zinc-700 dark:text-zinc-300">
+                      {selectedProfileModal.idea?.problem || "Not specified."}
+                    </p>
                   </div>
 
-                  {selectedProfile.idea?.tech_stack && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3 uppercase tracking-wider">Proposed Tech Stack</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {String(selectedProfile.idea.tech_stack).split(',').map((tech: string, i: number) => (
-                          <Badge key={i} variant="outline" className="bg-zinc-50 dark:bg-zinc-900">
-                            {tech.trim()}
-                          </Badge>
-                        ))}
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Target Market</span>
+                      <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.idea?.target_market || selectedProfileModal.idea?.market || "General"}</p>
                     </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/50">
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-1 flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-zinc-500" /> Primary Industry
-                      </h3>
-                      <p className="text-zinc-600 dark:text-zinc-400">
-                        {selectedProfile.industry || "General Strategy"}
-                      </p>
-                    </div>
-                    <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/50">
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-1 flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-zinc-500" /> Experience
-                      </h3>
-                      <p className="text-zinc-600 dark:text-zinc-400">
-                        {selectedProfile.experience_years ? `${selectedProfile.experience_years}+ Years` : "Experience unlisted"}
-                      </p>
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Tech Stack</span>
+                      <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.idea?.tech_stack || selectedProfileModal.skills || "Unspecified"}</p>
                     </div>
                   </div>
-
-                  {selectedProfile.skills && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3 uppercase tracking-wider">Core Competencies</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {String(selectedProfile.skills).split(',').map((skill: string, i: number) => (
-                          <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400">
-                            {skill.trim()}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
+
             </div>
 
-            <div className="p-6 border-t border-zinc-100 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900/30 rounded-b-xl flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setSelectedProfile(null)}>
-                Close
-              </Button>
-              
-              {!getConnectionStatus(selectedProfile.id) && (
-                <Button onClick={() => handleConnect(selectedProfile.id, selectedProfile.full_name)} className="gap-2">
-                  <UserPlus className="h-4 w-4" /> Connect Now
-                </Button>
-              )}
-              {getConnectionStatus(selectedProfile.id) === 'pending' && (
-                <Button 
-                  variant="secondary" 
-                  onClick={() => handleDisconnect(selectedProfile.id, selectedProfile.full_name)}
-                  className="gap-2 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-500 group transition-colors"
-                >
-                  <Clock className="h-4 w-4 group-hover:hidden" /> 
-                  <X className="h-4 w-4 hidden group-hover:block" />
-                  <span className="group-hover:hidden">Request Pending</span>
-                  <span className="hidden group-hover:block">Cancel Request</span>
-                </Button>
-              )}
-              {getConnectionStatus(selectedProfile.id) === 'accepted' && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleDisconnect(selectedProfile.id, selectedProfile.full_name)}
-                  className="gap-2 border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:bg-emerald-900/10 dark:text-emerald-500 dark:hover:bg-red-900/20 dark:hover:border-red-900/50 group transition-all"
-                >
-                  <CheckCircle2 className="h-4 w-4 group-hover:hidden" /> 
-                  <X className="h-4 w-4 hidden group-hover:block" />
-                  <span className="group-hover:hidden">Connected</span>
-                  <span className="hidden group-hover:block">Disconnect</span>
-                </Button>
-              )}
+            <div className="flex justify-end pt-3 border-t dark:border-zinc-800">
+              <Button onClick={() => setSelectedProfileModal(null)} className="w-full sm:w-auto">Close Modal</Button>
             </div>
+
           </div>
         </div>
       )}

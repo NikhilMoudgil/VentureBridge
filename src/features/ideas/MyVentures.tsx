@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { createClient } from "@/lib/client"
 import { useAuth } from "@/app/AuthProvider"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
@@ -12,9 +12,11 @@ const supabase = createClient()
 
 type Idea = {
   id: string
-  problem: string
-  solution: string
-  market: string
+  problem?: string
+  solution?: string
+  elevator_pitch?: string
+  market?: string
+  target_market?: string
   tech_stack: string
   created_at: string
 }
@@ -28,10 +30,10 @@ export function MyVentures() {
     async function fetchIdeas() {
       if (!user) return
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('ideas')
         .select('*')
-        .eq('owner_id', user.id)
+        .or(`id.eq.${user.id},owner_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
 
       if (data) setIdeas(data)
@@ -46,8 +48,6 @@ export function MyVentures() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-8">
-      
-      {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">My Ventures</h1>
@@ -64,7 +64,6 @@ export function MyVentures() {
         </div>
       </div>
 
-      {/* Empty State */}
       {ideas.length === 0 && (
         <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/50">
           <Rocket className="mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
@@ -76,12 +75,12 @@ export function MyVentures() {
         </div>
       )}
 
-      {/* Card Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {ideas.map((idea) => {
-          // Create a clean date format and a short snippet for the card preview
           const date = new Date(idea.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-          const snippet = idea.solution ? (idea.solution.length > 100 ? idea.solution.substring(0, 100) + "..." : idea.solution) : "No solution drafted yet."
+          const solutionText = idea.solution || idea.elevator_pitch || "No solution drafted yet."
+          const marketText = idea.market || idea.target_market || "General"
+          const snippet = solutionText.length > 100 ? solutionText.substring(0, 100) + "..." : solutionText
           
           return (
             <Dialog key={idea.id}>
@@ -95,7 +94,7 @@ export function MyVentures() {
                       </div>
                     </div>
                     <CardTitle className="mt-2 text-lg line-clamp-1">
-                      {idea.market ? `${idea.market} Venture` : "Untitled Venture"}
+                      {marketText} Venture
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -106,7 +105,6 @@ export function MyVentures() {
                 </Card>
               </DialogTrigger>
               
-              {/* Detailed View Modal */}
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <div className="mb-2 flex items-center gap-2">
@@ -134,7 +132,7 @@ export function MyVentures() {
                       <Rocket className="h-4 w-4 text-indigo-500" /> Core Solution
                     </h4>
                     <p className="rounded-md bg-zinc-50 p-4 text-sm text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                      {idea.solution || "Not provided."}
+                      {solutionText}
                     </p>
                   </div>
 
@@ -142,7 +140,7 @@ export function MyVentures() {
                     <div className="space-y-2">
                       <h4 className="font-semibold text-zinc-900 dark:text-zinc-50">Target Market</h4>
                       <p className="rounded-md border p-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                        {idea.market || "Not provided."}
+                        {marketText}
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -157,7 +155,6 @@ export function MyVentures() {
                 </div>
                 
                 <div className="mt-6 flex justify-end gap-3 border-t pt-4 dark:border-zinc-800">
-                  {/* Later, we will make this button load the specific idea into IdeaLab */}
                   <Link to="/dashboard/idealab">
                     <Button>Edit in IdeaLab</Button>
                   </Link>

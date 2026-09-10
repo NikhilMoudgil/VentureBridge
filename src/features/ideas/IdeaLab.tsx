@@ -19,7 +19,6 @@ export function IdeaLab() {
   const [activeTab, setActiveTab] = useState("problem")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [ideaId, setIdeaId] = useState<string | null>(null)
 
   // AI State
   const [aiAnalyzing, setAiAnalyzing] = useState(false)
@@ -35,13 +34,12 @@ export function IdeaLab() {
   useEffect(() => {
     async function loadDraft() {
       if (!user) return
-      const { data } = await supabase.from('ideas').select('*').eq('owner_id', user.id).maybeSingle()
+      const { data } = await supabase.from('ideas').select('*').eq('id', user.id).maybeSingle()
       if (data) {
-        setIdeaId(data.id)
         setFormData({
-          problem: data.problem || "",
-          solution: data.solution || "",
-          market: data.market || "",
+          problem: data.problem || data.solution || "",
+          solution: data.solution || data.elevator_pitch || "",
+          market: data.market || data.target_market || "",
           techStack: data.tech_stack || ""
         })
       }
@@ -59,24 +57,22 @@ export function IdeaLab() {
     if (!user) return
     setSaving(true)
 
+    // Satisfy all potential columns seen in your schema graph
     const payload = {
+      id: user.id,
       owner_id: user.id,
       problem: formData.problem,
       solution: formData.solution,
+      elevator_pitch: formData.solution, // Sync legacy column
       market: formData.market,
+      target_market: formData.market, // Sync legacy column
       tech_stack: formData.techStack,
       updated_at: new Date().toISOString()
     }
 
     try {
-      if (ideaId) {
-        const { error } = await supabase.from('ideas').update(payload).eq('id', ideaId)
-        if (error) throw error
-      } else {
-        const { data, error } = await supabase.from('ideas').insert([payload]).select('id').single()
-        if (error) throw error
-        if (data) setIdeaId(data.id)
-      }
+      const { error } = await supabase.from('ideas').upsert(payload)
+      if (error) throw error
       toast.success("Venture details saved successfully!")
     } catch (error: any) {
       toast.error(error.message || "Failed to save draft.")
@@ -85,7 +81,6 @@ export function IdeaLab() {
     }
   }
 
-  // Simulate calling the LLM API backend
   const runAIAnalysis = () => {
     if (!formData.problem || !formData.solution) {
       toast.error("Please fill out the Problem and Solution fields first.")
@@ -93,15 +88,13 @@ export function IdeaLab() {
     }
     
     setAiAnalyzing(true)
-    
-    // Simulate a 2-second network request to your future AI endpoint
     setTimeout(() => {
       setAiResults({
         risks: [
           "Customer acquisition cost (CAC) might exceed lifetime value in this specific niche.",
-          "High dependency on third-party APIs limits your technical moat."
+          "High dependency on third-party integrations limits your technical moat."
         ],
-        audience: "The current pitch targets too broad an audience. Narrow it down to early-stage B2B SaaS founders first.",
+        audience: "The current pitch targets a broad audience. Focus on early-stage adopters first.",
         questions: [
           "How will you acquire your first 100 paying users without paid ads?",
           "What happens if a major competitor replicates this feature?"
@@ -124,8 +117,6 @@ export function IdeaLab() {
           </p>
         </div>
         <div className="mt-4 flex gap-3 md:mt-0">
-          
-          {/* AI Diagnostics Sheet Trigger */}
           <Sheet>
             <SheetTrigger asChild>
               <Button onClick={runAIAnalysis} variant="secondary" className="gap-2">
@@ -142,7 +133,6 @@ export function IdeaLab() {
                   Automated risk analysis and market feedback based on your current IdeaLab draft.
                 </SheetDescription>
               </SheetHeader>
-              
               <ScrollArea className="mt-6 h-[calc(100vh-8rem)] pr-4">
                 {aiAnalyzing ? (
                   <div className="flex flex-col items-center justify-center space-y-4 py-12">
@@ -151,7 +141,6 @@ export function IdeaLab() {
                   </div>
                 ) : aiResults ? (
                   <div className="space-y-6 pb-8">
-                    
                     <div className="space-y-3">
                       <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
                         <AlertTriangle className="h-4 w-4 text-amber-500" /> Core Risks
@@ -162,7 +151,6 @@ export function IdeaLab() {
                         ))}
                       </ul>
                     </div>
-
                     <div className="space-y-3">
                       <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
                         <Target className="h-4 w-4 text-emerald-500" /> Market Positioning
@@ -171,7 +159,6 @@ export function IdeaLab() {
                         {aiResults.audience}
                       </div>
                     </div>
-
                     <div className="space-y-3">
                       <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
                         <HelpCircle className="h-4 w-4 text-blue-500" /> Validation Questions
@@ -182,7 +169,6 @@ export function IdeaLab() {
                         ))}
                       </ul>
                     </div>
-
                   </div>
                 ) : (
                   <div className="py-12 text-center text-sm text-zinc-500">
@@ -292,7 +278,6 @@ export function IdeaLab() {
               </CardFooter>
             </Card>
           </TabsContent>
-
         </Tabs>
       </form>
     </div>
