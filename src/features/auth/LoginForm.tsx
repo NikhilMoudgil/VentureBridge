@@ -1,10 +1,11 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { createClient } from "@/lib/client" 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ShieldCheck } from "lucide-react"
 
 const supabase = createClient()
 
@@ -93,6 +94,21 @@ export function LoginForm() {
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
+
+        <div className="mt-4 text-center text-sm text-zinc-500">
+          Don't have an account?{" "}
+          <Link to="/signup" className="font-semibold text-zinc-900 hover:underline dark:text-zinc-50">
+            Sign up
+          </Link>
+        </div>
+
+        <div className="mt-6 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+          <Button asChild variant="ghost" className="w-full gap-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50">
+            <Link to="/admin-login">
+              <ShieldCheck className="h-4 w-4" /> Admin Login
+            </Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )
