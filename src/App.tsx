@@ -16,6 +16,7 @@ import { MyVentures } from "@/features/ideas/MyVentures";
 import { NetworkDiscovery } from "@/features/matching/NetworkDiscovery";
 import { AdminLogin } from "@/features/auth/AdminLogin";
 import { AdminDashboard } from "@/features/admin/AdminDashboard";
+import { Messages } from "@/features/messages/Messages";
 const supabase = createClient();
 
 // --- Route Guard with Profile Checking ---
@@ -145,6 +146,7 @@ export default function App() {
             <Route path="ventures" element={<MyVentures />} />
             <Route path="idealab" element={<IdeaLab />} />
             <Route path="network" element={<NetworkDiscovery />} />
+            <Route path="messages" element={<Messages />} />
           </Route>
         </Routes>
         <Toaster />

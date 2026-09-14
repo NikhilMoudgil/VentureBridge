@@ -102,7 +102,7 @@ export function Dashboard() {
               <div className="text-2xl font-bold">{stats.ideasCount} Draft(s)</div>
               <p className="text-xs text-zinc-500 mt-1">Manage your active startup hypotheses.</p>
               <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-2">
-                <Link to="/dashboard/my-ventures">View Ventures <ArrowRight className="h-3 w-3" /></Link>
+                <Link to="/dashboard/ventures">View Ventures <ArrowRight className="h-3 w-3" /></Link>
               </Button>
             </CardContent>
           </Card>

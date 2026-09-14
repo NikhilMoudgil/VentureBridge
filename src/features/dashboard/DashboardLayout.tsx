@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ModeToggle } from "../../components/ModeToggle";
+import { ModeToggle } from "@/components/ModeToggle";
 
 const supabase = createClient();
 
@@ -64,6 +64,7 @@ export function DashboardLayout() {
               </>
             )}
 
+            {/* GLOBAL LINKS: Seen by BOTH Founders and Mentors */}
             <Link to="/dashboard/network" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Network</Link>
             <Link to="/dashboard/messages" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Messages</Link>
           </nav>
