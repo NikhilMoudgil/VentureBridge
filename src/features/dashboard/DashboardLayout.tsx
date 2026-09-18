@@ -19,7 +19,8 @@ const supabase = createClient();
 export function DashboardLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState<'founder' | 'mentor' | null>(null);
+  // UPDATED: Added 'investor' to the allowed state types
+  const [role, setRole] = useState<'founder' | 'mentor' | 'investor' | null>(null);
 
   // Fetch the role to control the navigation links
   useEffect(() => {
@@ -63,8 +64,16 @@ export function DashboardLayout() {
                 <Link to="/dashboard/ventures" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">My Ventures</Link>
               </>
             )}
+            
+            {/* STRICT RBAC: Only Investors see these links */}
+            {role === 'investor' && (
+              <>
+                <Link to="/dashboard/dealflow" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Deal Flow</Link>
+                <Link to="/dashboard/portfolio" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Portfolio</Link>
+              </>
+            )}
 
-            {/* GLOBAL LINKS: Seen by BOTH Founders and Mentors */}
+            {/* GLOBAL LINKS: Seen by ALL roles */}
             <Link to="/dashboard/network" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Network</Link>
             <Link to="/dashboard/messages" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Messages</Link>
           </nav>

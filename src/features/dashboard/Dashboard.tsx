@@ -3,14 +3,14 @@ import { createClient } from "@/lib/client"
 import { useAuth } from "@/app/AuthProvider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Lightbulb, Clock, CheckCircle2, ArrowRight, Rocket, ShieldCheck } from "lucide-react"
+import { Users, Lightbulb, Clock, CheckCircle2, ArrowRight, Rocket, ShieldCheck, TrendingUp } from "lucide-react"
 import { Link } from "react-router-dom"
 
 const supabase = createClient()
 
 export function Dashboard() {
   const { user } = useAuth()
-  const [role, setRole] = useState<'founder' | 'mentor' | null>(null)
+  const [role, setRole] = useState<'founder' | 'mentor' | 'investor' | null>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     connectionsCount: 0,
@@ -29,7 +29,7 @@ export function Dashboard() {
         .maybeSingle()
 
       if (userData) {
-        const userRole = userData.role
+        const userRole = userData.role as 'founder' | 'mentor' | 'investor'
         setRole(userRole)
 
         if (userRole === 'founder') {
@@ -65,6 +65,18 @@ export function Dashboard() {
             ideasCount: 0,
             isVerified: mentorData?.is_verified ?? false
           })
+        } else if (userRole === 'investor') {
+          const { data: investorData } = await supabase
+            .from('investors')
+            .select('is_verified')
+            .eq('id', user.id)
+            .maybeSingle()
+
+          setStats({
+            connectionsCount: 0,
+            ideasCount: 0,
+            isVerified: investorData?.is_verified ?? false
+          })
         }
       }
       setLoading(false)
@@ -81,12 +93,14 @@ export function Dashboard() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-          {role === 'founder' ? "Founder Command Center" : "Mentor Workspace"}
+          {role === 'founder' && "Founder Command Center"}
+          {role === 'mentor' && "Mentor Workspace"}
+          {role === 'investor' && "Investor Dashboard"}
         </h1>
         <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-          {role === 'founder'
-            ? "Build your venture, pitch to experts, and scale your startup."
-            : "Review incoming founder pitches and guide early-stage teams."}
+          {role === 'founder' && "Build your venture, pitch to experts, and scale your startup."}
+          {role === 'mentor' && "Review incoming founder pitches and guide early-stage teams."}
+          {role === 'investor' && "Scout high-signal startups and manage your deal flow pipeline."}
         </p>
       </div>
 
@@ -175,6 +189,53 @@ export function Dashboard() {
               <CardContent>
                 <div className="text-2xl font-bold">Expertise & Skills</div>
                 <p className="text-xs text-zinc-500 mt-1">Update your experience years, industry focus, and tech stack.</p>
+                <Button asChild variant="outline" className="mt-4 w-full gap-2">
+                  <Link to="/dashboard/profile">Edit Profile <ArrowRight className="h-4 w-4" /></Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* INVESTOR DASHBOARD VIEW */}
+      {role === 'investor' && (
+        <div className="space-y-6">
+          {!stats.isVerified && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-50 p-4 dark:bg-amber-950/20 flex items-center gap-4">
+              <div className="rounded-full bg-amber-100 p-2 text-amber-600 dark:bg-amber-900/50">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-amber-900 dark:text-amber-200">Verification Pending</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-400">Your investor profile is under review to ensure high-quality deal flow.</p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Deal Flow Pipeline</CardTitle>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Scout Startups</div>
+                <p className="text-xs text-zinc-500 mt-1">Discover and evaluate vetted founder hypotheses.</p>
+                <Button asChild className="mt-4 w-full gap-2">
+                  <Link to="/dashboard/dealflow">View Deal Flow <ArrowRight className="h-4 w-4" /></Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Investment Profile</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Thesis & Criteria</div>
+                <p className="text-xs text-zinc-500 mt-1">Update your target stage, check size, and industry focus.</p>
                 <Button asChild variant="outline" className="mt-4 w-full gap-2">
                   <Link to="/dashboard/profile">Edit Profile <ArrowRight className="h-4 w-4" /></Link>
                 </Button>
