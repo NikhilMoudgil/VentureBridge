@@ -17,6 +17,11 @@ import { NetworkDiscovery } from "@/features/matching/NetworkDiscovery";
 import { AdminLogin } from "@/features/auth/AdminLogin";
 import { AdminDashboard } from "@/features/admin/AdminDashboard";
 import { Messages } from "@/features/messages/Messages";
+
+// NEW INVESTOR IMPORTS
+import { DealFlow } from "@/features/investors/DealFlow";
+import { Portfolio } from "@/features/investors/Portfolio";
+
 const supabase = createClient();
 
 // --- Route Guard with Profile Checking ---
@@ -29,19 +34,27 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     async function checkProfile() {
       if (!user) return;
 
-      // CHANGED: .single() to .maybeSingle() to prevent 406 errors
       const { data: founder } = await supabase
         .from("founders")
         .select("id")
         .eq("id", user.id)
         .maybeSingle();
+        
       const { data: mentor } = await supabase
         .from("mentors")
         .select("id")
         .eq("id", user.id)
         .maybeSingle();
 
-      setHasProfile(!!founder || !!mentor);
+      // NEW: Check the investors table
+      const { data: investor } = await supabase
+        .from("investors")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // FIXED: Now checks all three tables before blocking access
+      setHasProfile(!!founder || !!mentor || !!investor);
     }
 
     if (user) checkProfile();
@@ -79,7 +92,7 @@ function Home() {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-6 bg-zinc-50 dark:bg-zinc-950">
       <h1 className="text-4xl font-bold tracking-tight">VentureBridge</h1>
-      <p className="text-zinc-500">Connect Founders with the right Mentors.</p>
+      <p className="text-zinc-500">Connect Founders with the right Mentors and Investors.</p>
       <div className="flex gap-4">
         <Link to="/login">
           <Button variant="outline">Sign In</Button>
@@ -119,7 +132,7 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin/operations" element={<AdminDashboard />} />
-          {/* Protected Onboarding Route (No Layout Wrapper) */}
+          
           <Route
             path="/onboarding"
             element={
@@ -129,7 +142,6 @@ export default function App() {
             }
           />
 
-          {/* Protected Dashboard Layout */}
           <Route
             path="/dashboard"
             element={
@@ -138,15 +150,20 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            {/* This renders inside the <Outlet /> at exactly /dashboard */}
             <Route index element={<Dashboard />} />
 
-            {/* Profile Settings Route */}
+            {/* Core Routes */}
             <Route path="profile" element={<ProfileSettings />} />
-            <Route path="ventures" element={<MyVentures />} />
-            <Route path="idealab" element={<IdeaLab />} />
             <Route path="network" element={<NetworkDiscovery />} />
             <Route path="messages" element={<Messages />} />
+            
+            {/* Founder Routes */}
+            <Route path="ventures" element={<MyVentures />} />
+            <Route path="idealab" element={<IdeaLab />} />
+            
+            {/* NEW: Investor Routes */}
+            <Route path="dealflow" element={<DealFlow />} />
+            <Route path="portfolio" element={<Portfolio />} />
           </Route>
         </Routes>
         <Toaster />

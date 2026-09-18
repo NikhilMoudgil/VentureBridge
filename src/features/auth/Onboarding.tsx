@@ -19,31 +19,34 @@ export function Onboarding() {
     setErrorMsg(null)
 
     try {
+      // Extract the full name once to ensure it populates correctly across all tables
+      const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || "Anonymous Member"
+
       // 1. Upsert the base user record
       const { error: userError } = await supabase
         .from('users')
         .upsert({ 
           id: user.id, 
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+          full_name: fullName,
           role 
         })
       if (userError) throw userError
 
-      // 2. Upsert the specific profile row safely
+      // 2. Upsert the specific profile row safely including the full_name to satisfy NOT NULL constraints
       if (role === 'founder') {
         const { error: founderError } = await supabase
           .from('founders')
-          .upsert({ id: user.id })
+          .upsert({ id: user.id, full_name: fullName })
         if (founderError) throw founderError
       } else if (role === 'mentor') {
         const { error: mentorError } = await supabase
           .from('mentors')
-          .upsert({ id: user.id })
+          .upsert({ id: user.id, full_name: fullName })
         if (mentorError) throw mentorError
       } else if (role === 'investor') {
         const { error: investorError } = await supabase
           .from('investors')
-          .upsert({ id: user.id })
+          .upsert({ id: user.id, full_name: fullName })
         if (investorError) throw investorError
       }
 
