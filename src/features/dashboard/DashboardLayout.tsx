@@ -62,6 +62,7 @@ export function DashboardLayout() {
               <>
                 <Link to="/dashboard/idealab" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">IdeaLab</Link>
                 <Link to="/dashboard/ventures" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">My Ventures</Link>
+                <Link to="/dashboard/validation" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Validation Lab</Link>
               </>
             )}
             

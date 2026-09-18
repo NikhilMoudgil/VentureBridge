@@ -17,6 +17,7 @@ import { NetworkDiscovery } from "@/features/matching/NetworkDiscovery";
 import { AdminLogin } from "@/features/auth/AdminLogin";
 import { AdminDashboard } from "@/features/admin/AdminDashboard";
 import { Messages } from "@/features/messages/Messages";
+import { ValidationLab } from "@/features/ideas/ValidationLab";
 
 // NEW INVESTOR IMPORTS
 import { DealFlow } from "@/features/investors/DealFlow";
@@ -160,6 +161,7 @@ export default function App() {
             {/* Founder Routes */}
             <Route path="ventures" element={<MyVentures />} />
             <Route path="idealab" element={<IdeaLab />} />
+            <Route path="validation" element={<ValidationLab />} />
             
             {/* NEW: Investor Routes */}
             <Route path="dealflow" element={<DealFlow />} />
