@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, MessageSquare, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, Video } from "lucide-react"
+import { Send, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, Video } from "lucide-react"
 import { toast } from "sonner"
 import { VideoCall } from "@/components/VideoCall"
 
