@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, MessageSquare, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2 } from "lucide-react"
+import { Send, MessageSquare, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, Video } from "lucide-react"
 import { toast } from "sonner"
+import { VideoCall } from "@/components/VideoCall"
 
 const supabase = createClient()
 
@@ -43,6 +44,7 @@ export function Messages() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
+  const [inCall, setInCall] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -66,12 +68,14 @@ export function Messages() {
           if (connections) {
             connections.forEach((conn: any) => {
               const contactData = role === 'founder' ? conn.mentors : conn.founders
-              parsedContacts.push({
-                id: contactData.id,
-                full_name: contactData.full_name || "Anonymous Member",
-                role: role === 'founder' ? 'Mentor' : 'Founder',
-                industry: contactData.industry
-              })
+              if (contactData) {
+                parsedContacts.push({
+                  id: contactData.id,
+                  full_name: contactData.full_name || "Anonymous Member",
+                  role: role === 'founder' ? 'Mentor' : 'Founder',
+                  industry: contactData.industry
+                })
+              }
             })
           }
         }
@@ -87,12 +91,14 @@ export function Messages() {
           if (dealFlows) {
             dealFlows.forEach((deal: any) => {
               const contactData = role === 'founder' ? deal.investors : deal.founders
-              parsedContacts.push({
-                id: contactData.id,
-                full_name: contactData.full_name || "Anonymous Member",
-                role: role === 'founder' ? 'Investor' : 'Founder',
-                industry: contactData.industry || contactData.investment_stage
-              })
+              if (contactData) {
+                parsedContacts.push({
+                  id: contactData.id,
+                  full_name: contactData.full_name || "Anonymous Member",
+                  role: role === 'founder' ? 'Investor' : 'Founder',
+                  industry: contactData.industry || contactData.investment_stage
+                })
+              }
             })
           }
         }
@@ -149,12 +155,28 @@ export function Messages() {
     } catch (err) { toast.error("Could not clear chat history."); }
   }
 
+  // Deterministically sort user IDs to ensure both caller and receiver join the exact same room
+  const getCallRoomId = () => {
+    if (!user || !activeContact) return ""
+    return [user.id, activeContact.id].sort().join("_")
+  }
+
   const activePrompts = currentUserRole === 'founder' ? FOUNDER_PROMPTS : (currentUserRole === 'mentor' ? MENTOR_PROMPTS : INVESTOR_PROMPTS)
 
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading conversations...</div>
 
   return (
-    <div className="flex h-[78vh] w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex h-[78vh] w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 relative">
+      
+      {/* WebRTC Video Call Overlay */}
+      {inCall && activeContact && (
+        <VideoCall 
+          roomId={getCallRoomId()} 
+          onEndCall={() => setInCall(false)} 
+        />
+      )}
+
+      {/* Sidebar Contacts List */}
       <div className="w-80 border-r border-zinc-200 bg-zinc-50/50 flex flex-col dark:border-zinc-800 dark:bg-zinc-900/30">
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
           <h2 className="font-semibold tracking-tight text-sm">Active Communications</h2>
@@ -163,7 +185,7 @@ export function Messages() {
           {contacts.length === 0 ? (
             <div className="p-6 text-center text-xs text-zinc-500">No active conversations. Connect with Mentors or get interest from Investors to unlock chat.</div>
           ) : contacts.map((contact) => (
-            <button key={contact.id} onClick={() => setActiveContact(contact)} className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${activeContact?.id === contact.id ? "bg-zinc-200/80 dark:bg-zinc-800 font-medium" : "hover:bg-zinc-100 dark:hover:bg-zinc-900"}`}>
+            <button key={contact.id} onClick={() => { setActiveContact(contact); setInCall(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${activeContact?.id === contact.id ? "bg-zinc-200/80 dark:bg-zinc-800 font-medium" : "hover:bg-zinc-100 dark:hover:bg-zinc-900"}`}>
               <Avatar className="h-9 w-9 border">
                 <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${contact.full_name}`} />
                 <AvatarFallback>{contact.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -180,9 +202,11 @@ export function Messages() {
         </div>
       </div>
 
+      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 relative">
         {activeContact && (
           <>
+            {/* Header */}
             <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between z-10">
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9 border">
@@ -193,8 +217,22 @@ export function Messages() {
                   <span className="text-xs text-zinc-500">{activeContact.role}</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleClearChat} className="text-zinc-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+              
+              {/* Header Action Buttons */}
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setInCall(true)} 
+                  className="gap-1.5 h-8 text-xs font-medium border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                >
+                  <Video className="h-3.5 w-3.5 text-indigo-500" /> Video Call
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleClearChat} className="text-zinc-400 hover:text-red-600 h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
+
+            {/* Messages Feed */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map((msg) => {
                 const isMe = msg.sender_id === user?.id
@@ -207,6 +245,8 @@ export function Messages() {
                 )
               })}
             </div>
+
+            {/* Prompt Templates */}
             <div className="px-4 py-2 border-t border-zinc-100 bg-zinc-50/70 dark:border-zinc-900">
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {activePrompts.map((prompt) => (
@@ -216,6 +256,8 @@ export function Messages() {
                 ))}
               </div>
             </div>
+
+            {/* Message Input Form */}
             <div className="p-4 bg-white border-t border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800">
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder={`Message ${activeContact.full_name}...`} className="rounded-full" />
