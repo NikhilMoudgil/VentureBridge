@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const supabase = createClient()
 
 export function Onboarding() {
-  const { user } = useAuth()
+  const { user, refresh } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -50,7 +50,8 @@ export function Onboarding() {
         if (investorError) throw investorError
       }
 
-      // 3. Send them to the dashboard
+      // 3. Re-read role/profile so the route guard lets them through, then go to the dashboard
+      await refresh()
       navigate("/dashboard")
       
     } catch (err: any) {

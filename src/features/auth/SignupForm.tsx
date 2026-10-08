@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 const supabase = createClient()
 
 export function SignupForm() {
+  const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -21,9 +22,11 @@ export function SignupForm() {
     setLoading(true)
     setError(null)
 
+    // full_name lands in user_metadata; Onboarding already reads it when it creates the profile rows
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: { data: { full_name: fullName.trim() } },
     })
 
     if (error) {
@@ -58,30 +61,45 @@ export function SignupForm() {
     <Card className="w-full max-w-md shadow-sm">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
-        <CardDescription>Enter your email below to join VentureBridge</CardDescription>
+        <CardDescription>Enter your details below to join VentureBridge</CardDescription>
       </CardHeader>
       <form onSubmit={handleSignup}>
         <CardContent className="space-y-4">
           {error && <div className="text-sm font-medium text-red-500 text-center">{error}</div>}
           <div className="space-y-2">
+            <Label htmlFor="full_name">Full name</Label>
+            <Input
+              id="full_name"
+              type="text"
+              placeholder="Your name"
+              autoComplete="name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="founder@venturebridge.com" 
+            <Input
+              id="email"
+              type="email"
+              placeholder="founder@venturebridge.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required 
+              required
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password" 
-              type="password" 
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required 
+              required
             />
           </div>
         </CardContent>

@@ -22,6 +22,8 @@ type NetworkProfile = {
   skills?: string
   idea?: any 
   investment_stage?: string
+  firm_name?: string
+  thesis?: string
 }
 
 export function NetworkDiscovery() {
@@ -103,6 +105,19 @@ export function NetworkDiscovery() {
 
   const calculateMatchScore = (targetProfile: NetworkProfile) => {
     if (!currentUserProfile) return 50
+
+    // Founder <-> Investor: investors have no industry/skills, so compare stage and thesis instead
+    if (currentUserProfile.role === 'investor' || targetProfile.role === 'investor') {
+      const founder = currentUserProfile.role === 'founder' ? currentUserProfile : targetProfile
+      const investor = currentUserProfile.role === 'investor' ? currentUserProfile : targetProfile
+      let fit = 40
+      const stage = (founder.startup_stage || '').trim().toLowerCase()
+      if (stage && (investor.investment_stage || '').toLowerCase().includes(stage)) fit += 30
+      const industry = (founder.industry || '').trim().toLowerCase()
+      if (industry && (investor.thesis || '').toLowerCase().includes(industry)) fit += 30
+      return Math.min(100, Math.max(35, fit))
+    }
+
     let score = 40
     if (currentUserProfile.industry && targetProfile.industry && currentUserProfile.industry.trim().toLowerCase() === targetProfile.industry.trim().toLowerCase()) score += 30
     if (currentUserProfile.skills && targetProfile.skills) {
@@ -216,7 +231,7 @@ export function NetworkDiscovery() {
                 <CardContent className="pb-4 space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 shrink-0 text-zinc-400" />
-                    <span className="truncate">Industry: {profile.industry || "General Strategy"}</span>
+                    <span className="truncate">{profile.role === 'investor' ? `Focus: ${profile.investment_stage || "All stages"}` : `Industry: ${profile.industry || "General Strategy"}`}</span>
                   </div>
                 </CardContent>
               </div>
@@ -345,13 +360,13 @@ export function NetworkDiscovery() {
                       <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.investment_stage || "All Stages"}</p>
                     </div>
                     <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
-                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Industry Focus</span>
-                      <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.industry || "General Strategy"}</p>
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Firm</span>
+                      <p className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">{selectedProfileModal.firm_name || "Independent"}</p>
                     </div>
                   </div>
                   <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50 space-y-2">
                     <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Investment Thesis</span>
-                    <p className="text-zinc-700 dark:text-zinc-300">{selectedProfileModal.skills || "No specific investment thesis provided yet."}</p>
+                    <p className="text-zinc-700 dark:text-zinc-300">{selectedProfileModal.thesis || "No specific investment thesis provided yet."}</p>
                   </div>
                 </>
               )}

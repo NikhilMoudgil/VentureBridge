@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
 import { Routes, Route, Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LoginForm } from "@/features/auth/LoginForm";
 import { SignupForm } from "@/features/auth/SignupForm";
 import { DashboardLayout } from "@/features/dashboard/DashboardLayout";
 import { Onboarding } from "@/features/auth/Onboarding";
-import { AuthProvider, useAuth } from "@/app/AuthProvider";
-import { createClient } from "@/lib/client";
+import { AuthProvider, useAuth, type Role } from "@/app/AuthProvider";
 import { ProfileSettings } from "@/features/profiles/ProfileSettings";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { Toaster } from "sonner";
@@ -18,51 +16,16 @@ import { AdminLogin } from "@/features/auth/AdminLogin";
 import { AdminDashboard } from "@/features/admin/AdminDashboard";
 import { Messages } from "@/features/messages/Messages";
 import { ValidationLab } from "@/features/ideas/ValidationLab";
-
-// NEW INVESTOR IMPORTS
 import { DealFlow } from "@/features/investors/DealFlow";
 import { Portfolio } from "@/features/investors/Portfolio";
 
-const supabase = createClient();
-
-// --- Route Guard with Profile Checking ---
+// --- Route Guard: login + profile check (role and profile now come from AuthProvider) ---
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
-  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const { user, loading, role, hasProfile } = useAuth();
   const location = useLocation();
 
-  useEffect(() => {
-    async function checkProfile() {
-      if (!user) return;
-
-      const { data: founder } = await supabase
-        .from("founders")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-        
-      const { data: mentor } = await supabase
-        .from("mentors")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      // NEW: Check the investors table
-      const { data: investor } = await supabase
-        .from("investors")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      // FIXED: Now checks all three tables before blocking access
-      setHasProfile(!!founder || !!mentor || !!investor);
-    }
-
-    if (user) checkProfile();
-  }, [user]);
-
-  // Wait until both Auth and Database checks are complete
-  if (authLoading || (user && hasProfile === null)) {
+  // Wait until both Auth and the role/profile lookup are complete
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
         Loading VentureBridge...
@@ -75,6 +38,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
+  // Admins use their own console, not the member dashboard
+  if (role === "admin") {
+    return <Navigate to="/admin/operations" replace />;
+  }
+
   // Redirect to onboarding if they have no profile (and aren't already there)
   if (!hasProfile && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
@@ -85,6 +53,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  return <>{children}</>;
+}
+
+// --- Route Guard: only the listed roles may open this page ---
+// (The navbar already hides these links; this stops people typing the URL.)
+function RoleRoute({ allow, children }: { allow: Role[]; children: React.ReactNode }) {
+  const { role } = useAuth();
+  if (!role || !allow.includes(role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -133,7 +111,7 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin/operations" element={<AdminDashboard />} />
-          
+
           <Route
             path="/onboarding"
             element={
@@ -153,19 +131,19 @@ export default function App() {
           >
             <Route index element={<Dashboard />} />
 
-            {/* Core Routes */}
+            {/* Core Routes (all roles) */}
             <Route path="profile" element={<ProfileSettings />} />
             <Route path="network" element={<NetworkDiscovery />} />
             <Route path="messages" element={<Messages />} />
-            
-            {/* Founder Routes */}
-            <Route path="ventures" element={<MyVentures />} />
-            <Route path="idealab" element={<IdeaLab />} />
-            <Route path="validation" element={<ValidationLab />} />
-            
-            {/* NEW: Investor Routes */}
-            <Route path="dealflow" element={<DealFlow />} />
-            <Route path="portfolio" element={<Portfolio />} />
+
+            {/* Founder-only Routes */}
+            <Route path="ventures" element={<RoleRoute allow={["founder"]}><MyVentures /></RoleRoute>} />
+            <Route path="idealab" element={<RoleRoute allow={["founder"]}><IdeaLab /></RoleRoute>} />
+            <Route path="validation" element={<RoleRoute allow={["founder"]}><ValidationLab /></RoleRoute>} />
+
+            {/* Investor-only Routes */}
+            <Route path="dealflow" element={<RoleRoute allow={["investor"]}><DealFlow /></RoleRoute>} />
+            <Route path="portfolio" element={<RoleRoute allow={["investor"]}><Portfolio /></RoleRoute>} />
           </Route>
         </Routes>
         <Toaster />
