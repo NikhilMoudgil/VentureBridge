@@ -21,7 +21,9 @@ import {
   XCircle,
   ShieldCheck,
   Building,
-  Briefcase
+  Briefcase,
+  Trash2,
+  X
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -47,9 +49,14 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([])
   const [mentors, setMentors] = useState<SystemUser[]>([])
   const [investors, setInvestors] = useState<SystemUser[]>([])
+  const [founders, setFounders] = useState<any[]>([])
+  const [ideas, setIdeas] = useState<any[]>([])
+  const [connections, setConnections] = useState<any[]>([])
+  
   const [metrics, setMetrics] = useState({ founders: 0, mentors: 0, investors: 0, ideas: 0, connections: 0 })
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pending' | 'verified'>('pending')
+  const [activeModal, setActiveModal] = useState<'founders' | 'mentors' | 'investors' | 'ideas' | 'connections' | null>(null)
 
   useEffect(() => {
     async function fetchSystemData() {
@@ -59,27 +66,28 @@ export function AdminDashboard() {
       
       if (me?.role === 'admin') {
         const { data: allUsers } = await supabase.from('users').select('*').order('role')
-        const { data: mentorsData } = await supabase.from('mentors').select('*')
-        const { data: investorsData } = await supabase.from('investors').select('*')
-        
         if (allUsers) setUsers(allUsers)
-        if (mentorsData) setMentors(mentorsData as SystemUser[])
-        if (investorsData) setInvestors(investorsData as SystemUser[])
 
-        // Live Counts
+        // Fetch Full Data + Counts for Lists & Metrics
         const [
-          { count: fCount }, 
-          { count: mCount }, 
-          { count: invCount },
-          { count: iCount }, 
-          { count: cCount }
+          { data: fData, count: fCount }, 
+          { data: mData, count: mCount }, 
+          { data: invData, count: invCount },
+          { data: iData, count: iCount }, 
+          { data: cData, count: cCount }
         ] = await Promise.all([
-          supabase.from('founders').select('*', { count: 'exact', head: true }),
-          supabase.from('mentors').select('*', { count: 'exact', head: true }),
-          supabase.from('investors').select('*', { count: 'exact', head: true }),
-          supabase.from('ideas').select('*', { count: 'exact', head: true }),
-          supabase.from('connections').select('*', { count: 'exact', head: true })
+          supabase.from('founders').select('*', { count: 'exact' }),
+          supabase.from('mentors').select('*', { count: 'exact' }),
+          supabase.from('investors').select('*', { count: 'exact' }),
+          supabase.from('ideas').select('*', { count: 'exact' }),
+          supabase.from('connections').select('*', { count: 'exact' })
         ])
+
+        if (fData) setFounders(fData)
+        if (mData) setMentors(mData as SystemUser[])
+        if (invData) setInvestors(invData as SystemUser[])
+        if (iData) setIdeas(iData)
+        if (cData) setConnections(cData)
 
         setMetrics({
           founders: fCount || 0,
@@ -115,6 +123,81 @@ export function AdminDashboard() {
     }
   }
 
+  const handleDelete = async (tableName: string, id: string) => {
+    const confirmDelete = window.confirm(`CRITICAL ACTION: Are you sure you want to permanently delete this record from ${tableName}?`)
+    if (!confirmDelete) return
+
+    const { error } = await supabase.from(tableName).delete().eq('id', id)
+    
+    if (error) {
+      toast.error(`Deletion failed: ${error.message}`)
+    } else {
+      toast.success(`Record successfully purged from ${tableName}.`)
+      
+      // Update local state dynamically without re-fetching
+      if (tableName === 'founders') {
+        setFounders(prev => prev.filter(item => item.id !== id))
+        setMetrics(prev => ({ ...prev, founders: Math.max(0, prev.founders - 1) }))
+      } else if (tableName === 'mentors') {
+        setMentors(prev => prev.filter(item => item.id !== id))
+        setMetrics(prev => ({ ...prev, mentors: Math.max(0, prev.mentors - 1) }))
+      } else if (tableName === 'investors') {
+        setInvestors(prev => prev.filter(item => item.id !== id))
+        setMetrics(prev => ({ ...prev, investors: Math.max(0, prev.investors - 1) }))
+      } else if (tableName === 'ideas') {
+        setIdeas(prev => prev.filter(item => item.id !== id))
+        setMetrics(prev => ({ ...prev, ideas: Math.max(0, prev.ideas - 1) }))
+      } else if (tableName === 'connections') {
+        setConnections(prev => prev.filter(item => item.id !== id))
+        setMetrics(prev => ({ ...prev, connections: Math.max(0, prev.connections - 1) }))
+      }
+    }
+  }
+
+  const renderModalContent = () => {
+    let data: any[] = []
+    if (activeModal === 'founders') data = founders
+    if (activeModal === 'mentors') data = mentors
+    if (activeModal === 'investors') data = investors
+    if (activeModal === 'ideas') data = ideas
+    if (activeModal === 'connections') data = connections
+
+    if (!data || data.length === 0) {
+      return (
+        <div className="py-12 flex flex-col items-center justify-center text-zinc-500">
+          <ShieldAlert className="h-10 w-10 mb-3 opacity-20" />
+          <p className="text-sm">No records found for {activeModal}.</p>
+        </div>
+      )
+    }
+
+    return data.map((item) => (
+      <div key={item.id} className="flex items-center justify-between p-4 border border-zinc-100 dark:border-zinc-800/60 rounded-lg bg-white dark:bg-zinc-900 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
+        <div className="flex flex-col min-w-0 pr-4">
+          <span className="font-semibold text-sm truncate text-zinc-900 dark:text-zinc-100">
+            {item.full_name || item.title || item.name || `System ID: ${item.id.substring(0, 12)}`}
+          </span>
+          <span className="text-xs text-zinc-500 truncate mt-0.5">
+            {item.email || item.industry || item.firm_name || item.description || `Created: ${new Date(item.created_at).toLocaleDateString()}`}
+            {item.is_verified !== undefined && (
+              <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${item.is_verified ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'}`}>
+                {item.is_verified ? 'Verified' : 'Pending'}
+              </span>
+            )}
+          </span>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleDelete(activeModal as string, item.id)}
+          className="text-red-600 border-red-100 bg-red-50 hover:border-red-200 hover:text-red-700 hover:bg-red-100 dark:border-red-900/30 dark:bg-red-950/20 dark:hover:bg-red-900/40 shrink-0"
+        >
+          <Trash2 className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Purge</span>
+        </Button>
+      </div>
+    ))
+  }
+
   if (loading) return <div className="flex h-screen items-center justify-center text-zinc-500 flex-col gap-4"><ShieldAlert className="h-8 w-8 animate-pulse text-red-500" /> Authenticating clearance...</div>
 
   // Consolidate queues
@@ -134,6 +217,28 @@ export function AdminDashboard() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-8 p-4 md:p-6 animate-in fade-in duration-500">
       
+      {/* Dynamic Master Control Modal overlay */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="p-5 md:p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/80 dark:bg-zinc-900/50">
+              <div>
+                <h2 className="text-xl font-bold capitalize text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-indigo-500" /> {activeModal} Registry
+                </h2>
+                <p className="text-sm text-zinc-500 mt-1">Reviewing {activeModal} table. Proceed with caution when deleting data.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setActiveModal(null)} className="h-8 w-8 rounded-full bg-zinc-200/50 hover:bg-zinc-300/50 dark:bg-zinc-800 dark:hover:bg-zinc-700">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 md:p-6 overflow-y-auto flex-1 flex flex-col gap-3 bg-zinc-50/30 dark:bg-zinc-950/20">
+              {renderModalContent()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div className="flex flex-col gap-2">
@@ -150,18 +255,52 @@ export function AdminDashboard() {
         </Button>
       </div>
 
-      {/* Metrics Grid */}
+      {/* Metrics Grid (Now Clickable as interactive cards) */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><Users className="h-5 w-5 mb-2 text-zinc-400"/><div className="text-3xl font-bold">{metrics.founders}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Founders</p></CardContent></Card>
-        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><UserCheck className="h-5 w-5 mb-2 text-emerald-500"/><div className="text-3xl font-bold">{metrics.mentors}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Mentors</p></CardContent></Card>
-        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><TrendingUp className="h-5 w-5 mb-2 text-blue-500"/><div className="text-3xl font-bold">{metrics.investors}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Investors</p></CardContent></Card>
-        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><Lightbulb className="h-5 w-5 mb-2 text-amber-500"/><div className="text-3xl font-bold">{metrics.ideas}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Pitches</p></CardContent></Card>
-        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 col-span-2 md:col-span-1"><CardContent className="p-5 flex flex-col items-center text-center"><Link2 className="h-5 w-5 mb-2 text-indigo-500"/><div className="text-3xl font-bold">{metrics.connections}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Connections</p></CardContent></Card>
+        <Card onClick={() => setActiveModal('founders')} className="shadow-sm border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-md transition-all group">
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <Users className="h-5 w-5 mb-2 text-zinc-400 group-hover:scale-110 transition-transform duration-300"/>
+            <div className="text-3xl font-bold">{metrics.founders}</div>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1 group-hover:text-zinc-800 dark:group-hover:text-zinc-300 transition-colors">Founders</p>
+          </CardContent>
+        </Card>
+
+        <Card onClick={() => setActiveModal('mentors')} className="shadow-sm border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all group">
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <UserCheck className="h-5 w-5 mb-2 text-emerald-500 group-hover:scale-110 transition-transform duration-300"/>
+            <div className="text-3xl font-bold">{metrics.mentors}</div>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">Mentors</p>
+          </CardContent>
+        </Card>
+
+        <Card onClick={() => setActiveModal('investors')} className="shadow-sm border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition-all group">
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <TrendingUp className="h-5 w-5 mb-2 text-blue-500 group-hover:scale-110 transition-transform duration-300"/>
+            <div className="text-3xl font-bold">{metrics.investors}</div>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">Investors</p>
+          </CardContent>
+        </Card>
+
+        <Card onClick={() => setActiveModal('ideas')} className="shadow-sm border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-md transition-all group">
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <Lightbulb className="h-5 w-5 mb-2 text-amber-500 group-hover:scale-110 transition-transform duration-300"/>
+            <div className="text-3xl font-bold">{metrics.ideas}</div>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">Pitches</p>
+          </CardContent>
+        </Card>
+
+        <Card onClick={() => setActiveModal('connections')} className="shadow-sm border-zinc-200 dark:border-zinc-800 col-span-2 md:col-span-1 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-md transition-all group">
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <Link2 className="h-5 w-5 mb-2 text-indigo-500 group-hover:scale-110 transition-transform duration-300"/>
+            <div className="text-3xl font-bold">{metrics.connections}</div>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">Connections</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 items-start">
         
-        {/* VERIFICATION CONTROL CENTER */}
+        {/* VERIFICATION CONTROL CENTER (Untouched core logic) */}
         <Card className="md:col-span-2 shadow-md border-zinc-200 dark:border-zinc-800 flex flex-col h-full min-h-[500px]">
           <CardHeader className="border-b bg-zinc-50/50 dark:bg-zinc-900/20 pb-4">
             <div className="flex items-center justify-between">
