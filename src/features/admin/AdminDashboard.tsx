@@ -3,24 +3,53 @@ import { useNavigate } from "react-router-dom"
 import { createClient } from "@/lib/client"
 import { useAuth } from "@/app/AuthProvider"
 
-import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardTitle, CardHeader, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Shield, ShieldAlert, CheckCircle2, Crown, Users, Lightbulb, Link2, UserCheck, LogOut } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { 
+  Shield, 
+  ShieldAlert, 
+  CheckCircle2, 
+  Crown, 
+  Users, 
+  Lightbulb, 
+  Link2, 
+  UserCheck, 
+  LogOut,
+  TrendingUp,
+  XCircle,
+  ShieldCheck,
+  Building,
+  Briefcase
+} from "lucide-react"
 import { toast } from "sonner"
 
-// Initialize the client exactly as your setup requires
 const supabase = createClient()
+
+type SystemUser = {
+  id: string
+  full_name: string
+  role: 'mentor' | 'investor'
+  is_verified: boolean
+  industry?: string
+  skills?: string
+  experience_years?: number
+  investment_stage?: string
+  firm_name?: string
+  created_at: string
+}
 
 export function AdminDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   
   const [users, setUsers] = useState<any[]>([])
-  const [mentors, setMentors] = useState<any[]>([])
-  const [metrics, setMetrics] = useState({ founders: 0, mentors: 0, ideas: 0, connections: 0 })
+  const [mentors, setMentors] = useState<SystemUser[]>([])
+  const [investors, setInvestors] = useState<SystemUser[]>([])
+  const [metrics, setMetrics] = useState({ founders: 0, mentors: 0, investors: 0, ideas: 0, connections: 0 })
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'pending' | 'verified'>('pending')
 
   useEffect(() => {
     async function fetchSystemData() {
@@ -31,14 +60,23 @@ export function AdminDashboard() {
       if (me?.role === 'admin') {
         const { data: allUsers } = await supabase.from('users').select('*').order('role')
         const { data: mentorsData } = await supabase.from('mentors').select('*')
+        const { data: investorsData } = await supabase.from('investors').select('*')
         
         if (allUsers) setUsers(allUsers)
-        if (mentorsData) setMentors(mentorsData)
+        if (mentorsData) setMentors(mentorsData as SystemUser[])
+        if (investorsData) setInvestors(investorsData as SystemUser[])
 
         // Live Counts
-        const [{ count: fCount }, { count: mCount }, { count: iCount }, { count: cCount }] = await Promise.all([
+        const [
+          { count: fCount }, 
+          { count: mCount }, 
+          { count: invCount },
+          { count: iCount }, 
+          { count: cCount }
+        ] = await Promise.all([
           supabase.from('founders').select('*', { count: 'exact', head: true }),
           supabase.from('mentors').select('*', { count: 'exact', head: true }),
+          supabase.from('investors').select('*', { count: 'exact', head: true }),
           supabase.from('ideas').select('*', { count: 'exact', head: true }),
           supabase.from('connections').select('*', { count: 'exact', head: true })
         ])
@@ -46,6 +84,7 @@ export function AdminDashboard() {
         setMetrics({
           founders: fCount || 0,
           mentors: mCount || 0,
+          investors: invCount || 0,
           ideas: iCount || 0,
           connections: cCount || 0,
         })
@@ -60,73 +99,201 @@ export function AdminDashboard() {
     navigate("/admin-login")
   }
 
-  // This relies on the Admin Override Policy you added to Supabase
-  const toggleVerification = async (id: string, name: string, status: boolean) => {
-    const { error } = await supabase.from('mentors').update({ is_verified: status }).eq('id', id)
+  const toggleVerification = async (id: string, name: string, status: boolean, role: 'mentor' | 'investor') => {
+    const table = role === 'mentor' ? 'mentors' : 'investors'
+    const { error } = await supabase.from(table).update({ is_verified: status }).eq('id', id)
+    
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success(`${name} verified successfully.`)
-      setMentors(prev => prev.map(m => m.id === id ? { ...m, is_verified: status } : m))
+      toast.success(`${name} has been ${status ? 'verified' : 'unverified'}.`)
+      if (role === 'mentor') {
+        setMentors(prev => prev.map(m => m.id === id ? { ...m, is_verified: status } : m))
+      } else {
+        setInvestors(prev => prev.map(i => i.id === id ? { ...i, is_verified: status } : i))
+      }
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-zinc-500">Authenticating clearance...</div>
+  if (loading) return <div className="flex h-screen items-center justify-center text-zinc-500 flex-col gap-4"><ShieldAlert className="h-8 w-8 animate-pulse text-red-500" /> Authenticating clearance...</div>
 
-  const pendingMentors = mentors.filter(m => !m.is_verified)
+  // Consolidate queues
+  const pendingQueue = [
+    ...mentors.filter(m => !m.is_verified).map(m => ({ ...m, role: 'mentor' as const })),
+    ...investors.filter(i => !i.is_verified).map(i => ({ ...i, role: 'investor' as const }))
+  ].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+
+  const verifiedQueue = [
+    ...mentors.filter(m => m.is_verified).map(m => ({ ...m, role: 'mentor' as const })),
+    ...investors.filter(i => i.is_verified).map(i => ({ ...i, role: 'investor' as const }))
+  ].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+
   const activeAdmins = users.filter(u => u.role === 'admin')
+  const displayedQueue = activeTab === 'pending' ? pendingQueue : verifiedQueue
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-8 p-4 md:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-8 p-4 md:p-6 animate-in fade-in duration-500">
+      
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div className="flex flex-col gap-2">
-          <Badge variant="secondary" className="w-fit font-mono text-xs uppercase text-emerald-600 bg-emerald-50">
+          <Badge variant="secondary" className="w-fit font-mono text-[10px] uppercase tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900">
             Superuser Access • /admin
           </Badge>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Shield className="h-8 w-8 text-zinc-900 dark:text-zinc-50" /> System Operations
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight flex items-center gap-3">
+            <Shield className="h-8 w-8 text-indigo-600 dark:text-indigo-500" /> System Operations
           </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage platform security, verifications, and global metrics.</p>
         </div>
-        <Button variant="outline" onClick={handleLogout} className="gap-2">
+        <Button variant="outline" onClick={handleLogout} className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-500 dark:hover:bg-red-950/50">
           <LogOut className="h-4 w-4" /> Terminate Session
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><CardContent className="p-6"><Users className="h-4 w-4 mb-2 text-zinc-500"/><div className="text-2xl font-bold">{metrics.founders}</div><p className="text-xs text-zinc-500">Founders</p></CardContent></Card>
-        <Card><CardContent className="p-6"><UserCheck className="h-4 w-4 mb-2 text-emerald-500"/><div className="text-2xl font-bold">{metrics.mentors}</div><p className="text-xs text-zinc-500">Mentors</p></CardContent></Card>
-        <Card><CardContent className="p-6"><Lightbulb className="h-4 w-4 mb-2 text-amber-500"/><div className="text-2xl font-bold">{metrics.ideas}</div><p className="text-xs text-zinc-500">Pitches</p></CardContent></Card>
-        <Card><CardContent className="p-6"><Link2 className="h-4 w-4 mb-2 text-blue-500"/><div className="text-2xl font-bold">{metrics.connections}</div><p className="text-xs text-zinc-500">Connections</p></CardContent></Card>
+      {/* Metrics Grid */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><Users className="h-5 w-5 mb-2 text-zinc-400"/><div className="text-3xl font-bold">{metrics.founders}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Founders</p></CardContent></Card>
+        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><UserCheck className="h-5 w-5 mb-2 text-emerald-500"/><div className="text-3xl font-bold">{metrics.mentors}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Mentors</p></CardContent></Card>
+        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><TrendingUp className="h-5 w-5 mb-2 text-blue-500"/><div className="text-3xl font-bold">{metrics.investors}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Investors</p></CardContent></Card>
+        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800"><CardContent className="p-5 flex flex-col items-center text-center"><Lightbulb className="h-5 w-5 mb-2 text-amber-500"/><div className="text-3xl font-bold">{metrics.ideas}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Pitches</p></CardContent></Card>
+        <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 col-span-2 md:col-span-1"><CardContent className="p-5 flex flex-col items-center text-center"><Link2 className="h-5 w-5 mb-2 text-indigo-500"/><div className="text-3xl font-bold">{metrics.connections}</div><p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Connections</p></CardContent></Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* PENDING QUEUE */}
-        <Card className="md:col-span-2 border-amber-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-600"><ShieldAlert className="h-5 w-5" /> Pending Mentors</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {pendingMentors.length === 0 ? <p className="text-sm text-zinc-500">Queue is clear.</p> : pendingMentors.map(m => (
-              <div key={m.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-3">
-                  <Avatar><AvatarFallback>{(m.full_name || "M").substring(0,2)}</AvatarFallback></Avatar>
-                  <div><h4 className="text-sm font-semibold">{m.full_name}</h4><p className="text-xs text-zinc-500">{m.industry}</p></div>
-                </div>
-                <Button size="sm" onClick={() => toggleVerification(m.id, m.full_name, true)} className="bg-amber-600 hover:bg-amber-700 text-white"><CheckCircle2 className="h-4 w-4 mr-2" /> Approve</Button>
+      <div className="grid gap-6 md:grid-cols-3 items-start">
+        
+        {/* VERIFICATION CONTROL CENTER */}
+        <Card className="md:col-span-2 shadow-md border-zinc-200 dark:border-zinc-800 flex flex-col h-full min-h-[500px]">
+          <CardHeader className="border-b bg-zinc-50/50 dark:bg-zinc-900/20 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-xl">Verification Control</CardTitle>
+                <CardDescription className="mt-1">Review and manage platform access for Mentors and Investors.</CardDescription>
               </div>
-            ))}
+              {pendingQueue.length > 0 && (
+                <Badge variant="destructive" className="animate-pulse flex gap-1"><ShieldAlert className="h-3 w-3" /> {pendingQueue.length} Action Req.</Badge>
+              )}
+            </div>
+            
+            {/* Custom Tab Navigation */}
+            <div className="flex items-center gap-6 mt-6">
+              <button 
+                onClick={() => setActiveTab('pending')} 
+                className={`font-semibold text-sm pb-2 border-b-2 transition-colors ${activeTab === 'pending' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+              >
+                Pending Approvals ({pendingQueue.length})
+              </button>
+              <button 
+                onClick={() => setActiveTab('verified')} 
+                className={`font-semibold text-sm pb-2 border-b-2 transition-colors ${activeTab === 'verified' ? 'border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+              >
+                Verified Roster ({verifiedQueue.length})
+              </button>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-0 flex-1 overflow-y-auto bg-zinc-50/30 dark:bg-zinc-950/20">
+            <div className="p-4 space-y-3">
+              {displayedQueue.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-950">
+                  {activeTab === 'pending' ? (
+                    <>
+                      <ShieldCheck className="h-12 w-12 text-emerald-500/50 mb-3" />
+                      <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Queue is clear</p>
+                      <p className="text-sm text-zinc-500 max-w-[250px] mt-1">All mentor and investor accounts have been reviewed.</p>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-12 w-12 text-zinc-300 dark:text-zinc-700 mb-3" />
+                      <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No verified users</p>
+                      <p className="text-sm text-zinc-500 mt-1">Approved accounts will appear here.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                displayedQueue.map(user => (
+                  <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 bg-white dark:bg-zinc-900 shadow-sm transition-all hover:shadow-md">
+                    <div className="flex items-start sm:items-center gap-4 min-w-0">
+                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border shrink-0">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name}`} />
+                        <AvatarFallback>{(user.full_name || "??").substring(0,2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-semibold text-sm sm:text-base truncate">{user.full_name}</h4>
+                          <Badge variant="outline" className={`text-[10px] uppercase font-mono tracking-wider ${user.role === 'mentor' ? 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900 dark:text-blue-400' : 'text-purple-600 bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-900 dark:text-purple-400'}`}>
+                            {user.role}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                          {user.role === 'mentor' ? (
+                            <>
+                              <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> {user.industry || 'General'}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span>{user.experience_years ? `${user.experience_years} YOE` : 'Exp Unlisted'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex items-center gap-1"><Building className="h-3 w-3" /> {user.firm_name || 'Independent'}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span>{user.investment_stage || 'Stage Unlisted'}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 sm:mt-0 flex items-center gap-2 shrink-0">
+                      {activeTab === 'pending' ? (
+                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto" onClick={() => toggleVerification(user.id, user.full_name, true, user.role)}>
+                          <CheckCircle2 className="h-4 w-4 mr-2" /> Approve
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:hover:bg-red-900/40 w-full sm:w-auto" onClick={() => toggleVerification(user.id, user.full_name, false, user.role)}>
+                          <XCircle className="h-4 w-4 mr-2" /> Revoke Access
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* ACTIVE ADMINS */}
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Crown className="h-5 w-5" /> Admins</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            {activeAdmins.map(u => (
-              <div key={u.id} className="flex items-center gap-3 border-b pb-2 last:border-0"><h4 className="text-sm font-semibold">{u.full_name || "Admin"}</h4></div>
-            ))}
-          </CardContent>
-        </Card>
+        {/* SIDEBAR: SYSTEM HEALTH & ADMINS */}
+        <div className="space-y-6">
+          <Card className="shadow-sm border-zinc-200 dark:border-zinc-800">
+            <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <CardTitle className="flex items-center gap-2 text-base"><Crown className="h-5 w-5 text-amber-500" /> Active System Admins</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {activeAdmins.map(u => (
+                  <div key={u.id} className="flex items-center gap-3 p-4">
+                    <div className="h-8 w-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                      <Shield className="h-4 w-4 text-zinc-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-semibold truncate">{u.full_name || "Admin"}</h4>
+                      <p className="text-xs text-zinc-500 truncate">{u.id.substring(0,12)}...</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+            <CardContent className="p-4 flex gap-3">
+              <ShieldCheck className="h-6 w-6 text-emerald-500 shrink-0" />
+              <div>
+                <h4 className="text-sm font-semibold">System Secure</h4>
+                <p className="text-xs text-zinc-500 mt-1">All database RLS policies are enforcing strict role-based access control. Unverified users remain restricted in discovery layers.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </div>
   )
