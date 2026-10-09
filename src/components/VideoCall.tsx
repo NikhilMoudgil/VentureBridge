@@ -9,6 +9,9 @@ const ICE_SERVERS = {
   ]
 };
 
+// Dynamically target the tunnel URL or fallback to localhost
+const SIGNALING_SERVER_URL = import.meta.env.VITE_SIGNALING_SERVER_URL || 'http://localhost:3001';
+
 export function VideoCall({ roomId, onEndCall }: { roomId: string, onEndCall: () => void }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -20,7 +23,8 @@ export function VideoCall({ roomId, onEndCall }: { roomId: string, onEndCall: ()
   const localStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:3001');
+    // Connects to ngrok HTTPS tunnel when deployed on Vercel
+    socketRef.current = io(SIGNALING_SERVER_URL);
     const socket = socketRef.current;
 
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {

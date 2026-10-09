@@ -9,7 +9,7 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Your Vite dev server URL
+    origin: "*", // Allows connections from Vercel, ngrok, and local dev
     methods: ["GET", "POST"]
   }
 });
