@@ -59,7 +59,6 @@ export function Messages() {
     setIsInCall(false)
   }, [activeContact])
 
-  // Helper to re-order contact list so active sender/receiver is moved to the top
   const bumpContactToTop = (contactId: string) => {
     setContacts((prevContacts) => {
       const existingIdx = prevContacts.findIndex((c) => c.id === contactId)
@@ -70,12 +69,10 @@ export function Messages() {
     })
   }
 
-  // Load active messages
   useEffect(() => {
     if (!user || !activeContact) return
     fetchMessages()
 
-    // Clear unread indicator for active contact
     setUnreadContactIds((prev) => {
       const next = new Set(prev)
       next.delete(activeContact.id)
@@ -83,7 +80,7 @@ export function Messages() {
     })
   }, [user, activeContact])
 
-  // Global Realtime listener for incoming messages to manage ordering & live updates
+  // Global Realtime listener for incoming messages and deletions
   useEffect(() => {
     if (!user) return
 
@@ -112,6 +109,14 @@ export function Messages() {
         } else if (!isSender) {
           setUnreadContactIds((prev) => new Set(prev).add(otherId))
         }
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages'
+      }, (payload) => {
+        const deletedId = payload.old.id
+        setMessages((prev) => prev.filter((m) => m.id !== deletedId))
       })
       .subscribe()
 
@@ -254,6 +259,22 @@ export function Messages() {
     }
   }
 
+  const handleDeleteMessage = async (messageId: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId))
+
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId)
+
+    if (error) {
+      toast.error("Failed to delete message")
+      fetchMessages()
+    } else {
+      toast.success("Message deleted")
+    }
+  }
+
   const handleSelectContact = (contact: Contact) => {
     setActiveContact(contact)
     setUnreadContactIds((prev) => {
@@ -382,7 +403,18 @@ export function Messages() {
                 messages.map((msg) => {
                   const isMine = msg.sender_id === user?.id;
                   return (
-                    <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <div key={msg.id} className={`flex items-center gap-1 group ${isMine ? 'justify-end' : 'justify-start'}`}>
+                      {isMine && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          title="Delete message"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${isMine ? 'bg-indigo-600 text-white rounded-br-none dark:bg-indigo-500' : 'bg-white rounded-bl-none dark:bg-zinc-800 border dark:border-zinc-700 shadow-sm'}`}>
                         {msg.content}
                       </div>
