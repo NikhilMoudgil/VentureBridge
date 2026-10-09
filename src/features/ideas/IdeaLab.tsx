@@ -29,7 +29,6 @@ export function IdeaLab() {
     techStack: ""
   })
 
-  // Instant, rule-based feedback on the current draft (no network, no cost)
   const check = useMemo(() => checkIdea(formData), [formData])
 
   useEffect(() => {
@@ -58,15 +57,14 @@ export function IdeaLab() {
     if (!user) return
     setSaving(true)
 
-    // Satisfy all potential columns seen in your schema graph
     const payload = {
       id: user.id,
       owner_id: user.id,
       problem: formData.problem,
       solution: formData.solution,
-      elevator_pitch: formData.solution, // Sync legacy column
+      elevator_pitch: formData.solution,
       market: formData.market,
-      target_market: formData.market, // Sync legacy column
+      target_market: formData.market,
       tech_stack: formData.techStack,
       updated_at: new Date().toISOString()
     }
@@ -85,22 +83,22 @@ export function IdeaLab() {
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading IdeaLab workspace...</div>
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 pb-8">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 pb-8 sm:gap-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">IdeaLab</h1>
-          <p className="mt-1 text-zinc-500 dark:text-zinc-400">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">IdeaLab</h1>
+          <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
             Structure your venture hypothesis and check how strong your draft is.
           </p>
         </div>
-        <div className="mt-4 flex gap-3 md:mt-0">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <Sheet>
             <SheetTrigger asChild>
-              <Button type="button" variant="secondary" className="gap-2">
+              <Button type="button" variant="secondary" size="sm" className="gap-2 sm:size-default">
                 <Sparkles className="h-4 w-4" /> Idea Check
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-md">
+            <SheetContent className="w-[95vw] sm:max-w-md">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-indigo-500" />
@@ -184,17 +182,13 @@ export function IdeaLab() {
                         ))}
                       </ul>
                     </div>
-
-                    <p className="text-xs leading-relaxed text-zinc-500">
-                      These are rule-based checks on how the draft is written. They can't tell you whether the market wants it. Only customers can, so log what you learn in the Validation Lab.
-                    </p>
                   </div>
                 )}
               </ScrollArea>
             </SheetContent>
           </Sheet>
 
-          <Button onClick={handleSave} disabled={saving} className="gap-2">
+          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2 sm:size-default">
             <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Draft"}
           </Button>
         </div>
@@ -202,94 +196,96 @@ export function IdeaLab() {
 
       <form onSubmit={handleSave}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-8 grid w-full grid-cols-3">
-            <TabsTrigger value="problem">1. The Problem</TabsTrigger>
-            <TabsTrigger value="solution">2. The Solution</TabsTrigger>
-            <TabsTrigger value="market">3. Market & Stage</TabsTrigger>
+          <TabsList className="mb-6 grid h-auto w-full grid-cols-3 gap-1 p-1 text-xs sm:mb-8 sm:text-sm">
+            <TabsTrigger value="problem" className="px-1 py-2 sm:px-3">1. Problem</TabsTrigger>
+            <TabsTrigger value="solution" className="px-1 py-2 sm:px-3">2. Solution</TabsTrigger>
+            <TabsTrigger value="market" className="px-1 py-2 sm:px-3">3. Market</TabsTrigger>
           </TabsList>
 
           <TabsContent value="problem">
             <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <CardHeader>
-                <CardTitle>Define the Problem</CardTitle>
-                <CardDescription>What is the core pain point you are solving?</CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Define the Problem</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">What is the core pain point you are solving?</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
                 <div className="space-y-2">
-                  <Label htmlFor="problem">Problem Statement</Label>
+                  <Label htmlFor="problem" className="text-xs sm:text-sm">Problem Statement</Label>
                   <Textarea 
                     id="problem" 
                     name="problem"
                     value={formData.problem} 
                     onChange={handleChange}
                     placeholder="Describe the problem your target audience faces..." 
-                    className="min-h-[150px]" 
+                    className="min-h-[140px] text-sm sm:min-h-[150px]" 
                   />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-zinc-100 p-4 dark:border-zinc-800">
-                <Button type="button" onClick={() => setActiveTab("solution")}>Next: The Solution →</Button>
+                <Button type="button" size="sm" className="sm:size-default" onClick={() => setActiveTab("solution")}>Next: Solution →</Button>
               </CardFooter>
             </Card>
           </TabsContent>
 
           <TabsContent value="solution">
             <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <CardHeader>
-                <CardTitle>Outline your Solution</CardTitle>
-                <CardDescription>How does your product eliminate the pain point?</CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Outline your Solution</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">How does your product eliminate the pain point?</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
                 <div className="space-y-2">
-                  <Label htmlFor="solution">Core Value Proposition</Label>
+                  <Label htmlFor="solution" className="text-xs sm:text-sm">Core Value Proposition</Label>
                   <Textarea 
                     id="solution" 
                     name="solution"
                     value={formData.solution}
                     onChange={handleChange}
                     placeholder="Describe your product or service..." 
-                    className="min-h-[150px]" 
+                    className="min-h-[140px] text-sm sm:min-h-[150px]" 
                   />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t border-zinc-100 p-4 dark:border-zinc-800">
-                <Button type="button" variant="outline" onClick={() => setActiveTab("problem")}>← Back</Button>
-                <Button type="button" onClick={() => setActiveTab("market")}>Next: Market & Stage →</Button>
+                <Button type="button" variant="outline" size="sm" className="sm:size-default" onClick={() => setActiveTab("problem")}>← Back</Button>
+                <Button type="button" size="sm" className="sm:size-default" onClick={() => setActiveTab("market")}>Next: Market →</Button>
               </CardFooter>
             </Card>
           </TabsContent>
 
           <TabsContent value="market">
             <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <CardHeader>
-                <CardTitle>Market & Execution</CardTitle>
-                <CardDescription>Who is paying for this and where are you right now?</CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Market & Execution</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Who is paying for this and where are you right now?</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
                 <div className="space-y-2">
-                  <Label htmlFor="market">Target Audience</Label>
+                  <Label htmlFor="market" className="text-xs sm:text-sm">Target Audience</Label>
                   <Input 
                     id="market" 
                     name="market"
                     value={formData.market}
                     onChange={handleChange}
                     placeholder="e.g. B2B SaaS companies, College students" 
+                    className="text-sm"
                   />
                 </div>
                 <div className="mt-4 space-y-2">
-                  <Label htmlFor="techStack">Tech Stack / Required Skills</Label>
+                  <Label htmlFor="techStack" className="text-xs sm:text-sm">Tech Stack / Required Skills</Label>
                   <Input 
                     id="techStack" 
                     name="techStack"
                     value={formData.techStack}
                     onChange={handleChange}
                     placeholder="e.g. React, Python, Marketing" 
+                    className="text-sm"
                   />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t border-zinc-100 p-4 dark:border-zinc-800">
-                <Button type="button" variant="outline" onClick={() => setActiveTab("solution")}>← Back</Button>
-                <Button type="submit" disabled={saving}>Save Venture Details</Button>
+                <Button type="button" variant="outline" size="sm" className="sm:size-default" onClick={() => setActiveTab("solution")}>← Back</Button>
+                <Button type="submit" disabled={saving} size="sm" className="sm:size-default">Save Venture Details</Button>
               </CardFooter>
             </Card>
           </TabsContent>

@@ -25,7 +25,6 @@ export function ProfileSettings() {
     funding_goal: "",
     skills: "", 
     experience_years: "", 
-    // Investor specific fields
     firm_name: "",
     investment_stage: "",
     thesis: ""
@@ -130,47 +129,48 @@ export function ProfileSettings() {
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading profile data...</div>
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 pb-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-8 sm:gap-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Profile Settings</h1>
-        <p className="mt-1 text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Profile Settings</h1>
+        <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
           Manage your account details and matching parameters.
         </p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-4 sm:space-y-6">
         <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <CardHeader>
+          <CardHeader className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <User className="h-5 w-5" /> Personal Information
               </CardTitle>
-              <Badge variant="outline" className="uppercase text-xs">{role}</Badge>
+              <Badge variant="outline" className="uppercase text-[10px]">{role}</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+          <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
+                <Label htmlFor="full_name" className="text-xs sm:text-sm">Full Name</Label>
                 <Input 
                   id="full_name" name="full_name" 
                   value={formData.full_name} onChange={handleChange} 
+                  className="text-sm"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Email Address (Read Only)</Label>
-                <Input value={user?.email || ""} disabled className="bg-zinc-50 dark:bg-zinc-900" />
+                <Label className="text-xs sm:text-sm">Email Address (Read Only)</Label>
+                <Input value={user?.email || ""} disabled className="bg-zinc-50 dark:bg-zinc-900 text-sm" />
               </div>
             </div>
 
-            {/* Investor-only Firm Name */}
             {role === 'investor' && (
               <div className="space-y-2 pt-2">
-                <Label htmlFor="firm_name">Venture Firm / Syndicate Name (Optional)</Label>
+                <Label htmlFor="firm_name" className="text-xs sm:text-sm">Venture Firm / Syndicate Name (Optional)</Label>
                 <Input 
                   id="firm_name" name="firm_name" 
                   placeholder="e.g. Sequoia, AngelList Syndicate, Independent"
                   value={formData.firm_name} onChange={handleChange} 
+                  className="text-sm"
                 />
               </div>
             )}
@@ -178,8 +178,8 @@ export function ProfileSettings() {
         </Card>
 
         <Card className="border-zinc-200 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               {role === 'founder' && <Rocket className="h-5 w-5" />}
               {role === 'mentor' && <Award className="h-5 w-5" />}
               {role === 'investor' && <TrendingUp className="h-5 w-5" />}
@@ -188,75 +188,75 @@ export function ProfileSettings() {
               {role === 'mentor' && "Professional Background"}
               {role === 'investor' && "Investment Mandate"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               This data powers the algorithm to pair you accurately across the platform.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* FOUNDER & MENTOR SPECIFIC FIELDS */}
+          <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
             {role !== 'investor' && (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="industry" className="flex items-center gap-2"><Briefcase className="h-3 w-3"/> Primary Industry</Label>
+                  <Label htmlFor="industry" className="flex items-center gap-2 text-xs sm:text-sm"><Briefcase className="h-3 w-3"/> Primary Industry</Label>
                   <Input 
                     id="industry" name="industry" 
                     placeholder="e.g. FinTech, EdTech, SaaS"
                     value={formData.industry} onChange={handleChange} 
+                    className="text-sm"
                   />
                 </div>
 
                 {role === 'mentor' ? (
                   <div className="space-y-2">
-                    <Label htmlFor="experience_years">Years of Experience</Label>
+                    <Label htmlFor="experience_years" className="text-xs sm:text-sm">Years of Experience</Label>
                     <Input 
                       id="experience_years" name="experience_years" type="number" min="0"
                       placeholder="e.g. 5, 10, 15"
                       value={formData.experience_years} onChange={handleChange} 
+                      className="text-sm"
                     />
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor="startup_stage">Startup Stage</Label>
+                    <Label htmlFor="startup_stage" className="text-xs sm:text-sm">Startup Stage</Label>
                     <Input 
                       id="startup_stage" name="startup_stage" 
                       placeholder="e.g. Idea, MVP, Pre-Seed, Seed"
                       value={formData.startup_stage} onChange={handleChange} 
+                      className="text-sm"
                     />
                   </div>
                 )}
               </div>
             )}
 
-            {/* FOUNDER ONLY FIELD */}
             {role === 'founder' && (
               <div className="space-y-2">
-                <Label htmlFor="funding_goal">Funding Goal / Status</Label>
+                <Label htmlFor="funding_goal" className="text-xs sm:text-sm">Funding Goal / Status</Label>
                 <Input 
                   id="funding_goal" name="funding_goal" 
                   placeholder="e.g. Bootstrapped, Raising Pre-Seed ($500k)"
                   value={formData.funding_goal} onChange={handleChange} 
+                  className="text-sm"
                 />
               </div>
             )}
 
-            {/* INVESTOR SPECIFIC FIELDS */}
             {role === 'investor' && (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="investment_stage">Target Investment Stage</Label>
+                  <Label htmlFor="investment_stage" className="text-xs sm:text-sm">Target Investment Stage</Label>
                   <Input 
                     id="investment_stage" name="investment_stage" 
                     placeholder="e.g. Pre-Seed, Seed, Series A"
                     value={formData.investment_stage} onChange={handleChange} 
+                    className="text-sm"
                   />
                 </div>
               </div>
             )}
 
-            {/* SHARED TEXTAREA (Skills vs Thesis) */}
             <div className="space-y-2">
-              <Label htmlFor={role === 'investor' ? 'thesis' : 'skills'}>
+              <Label htmlFor={role === 'investor' ? 'thesis' : 'skills'} className="text-xs sm:text-sm">
                 {role === 'founder' && "Tech Stack / Mentorship Needs (Comma separated)"}
                 {role === 'mentor' && "Core Skills & Tech Stack"}
                 {role === 'investor' && "Investment Thesis & Focus Areas"}
@@ -271,14 +271,14 @@ export function ProfileSettings() {
                 }
                 value={role === 'investor' ? formData.thesis : formData.skills} 
                 onChange={handleChange} 
-                className="min-h-[100px]"
+                className="min-h-[100px] text-sm"
               />
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={saving} className="gap-2">
+          <Button type="submit" disabled={saving} size="sm" className="w-full sm:w-auto gap-2 sm:size-default">
             <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
