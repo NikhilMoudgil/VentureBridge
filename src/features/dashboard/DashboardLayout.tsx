@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/app/AuthProvider";
 import { createClient } from "@/lib/client";
 import { Button } from "@/components/ui/button";
@@ -13,16 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/ModeToggle";
+import { Menu, X } from "lucide-react";
 
 const supabase = createClient();
 
 export function DashboardLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  // UPDATED: Added 'investor' to the allowed state types
+  const location = useLocation();
   const [role, setRole] = useState<'founder' | 'mentor' | 'investor' | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Fetch the role to control the navigation links
   useEffect(() => {
     async function fetchRole() {
       if (!user) return;
@@ -32,15 +33,30 @@ export function DashboardLayout() {
     fetchRole();
   }, [user]);
 
+  // Close mobile navigation drawer whenever the route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
 
-  // Generate initials for the avatar if no image exists
   const initials = user?.email?.substring(0, 2).toUpperCase() || "VB";
-  // Grab Google/GitHub profile picture if available
   const avatarUrl = user?.user_metadata?.avatar_url;
+
+  // Filter navigation links based on user role
+  const navLinks = [
+    { to: "/dashboard", label: "Home", show: true },
+    { to: "/dashboard/idealab", label: "IdeaLab", show: role === "founder" },
+    { to: "/dashboard/ventures", label: "My Ventures", show: role === "founder" },
+    { to: "/dashboard/validation", label: "Validation Lab", show: role === "founder" },
+    { to: "/dashboard/dealflow", label: "Deal Flow", show: role === "investor" },
+    { to: "/dashboard/portfolio", label: "Portfolio", show: role === "investor" },
+    { to: "/dashboard/network", label: "Network", show: true },
+    { to: "/dashboard/messages", label: "Messages", show: true },
+  ].filter((link) => link.show);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -55,36 +71,21 @@ export function DashboardLayout() {
 
           {/* 2. Desktop Navigation */}
           <nav className="hidden gap-6 md:flex">
-            <Link to="/dashboard" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Home</Link>
-            
-            {/* STRICT RBAC: Only Founders see these links */}
-            {role === 'founder' && (
-              <>
-                <Link to="/dashboard/idealab" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">IdeaLab</Link>
-                <Link to="/dashboard/ventures" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">My Ventures</Link>
-                <Link to="/dashboard/validation" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Validation Lab</Link>
-              </>
-            )}
-            
-            {/* STRICT RBAC: Only Investors see these links */}
-            {role === 'investor' && (
-              <>
-                <Link to="/dashboard/dealflow" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Deal Flow</Link>
-                <Link to="/dashboard/portfolio" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Portfolio</Link>
-              </>
-            )}
-
-            {/* GLOBAL LINKS: Seen by ALL roles */}
-            <Link to="/dashboard/network" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Network</Link>
-            <Link to="/dashboard/messages" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">Messages</Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
 
-          {/* 3. Right Side Actions (Toggle + Avatar) */}
+          {/* 3. Right Side Actions */}
           <div className="flex items-center gap-2 md:gap-4">
-            
             <ModeToggle />
             
-            {/* Premium subtle vertical divider */}
             <div className="hidden h-5 w-px bg-zinc-200 dark:bg-zinc-800 md:block" />
 
             <DropdownMenu>
@@ -101,7 +102,6 @@ export function DashboardLayout() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Account</p>
                     <p className="text-xs leading-none text-zinc-500">{user?.email}</p>
-                    {/* Display the role in the dropdown for clarity */}
                     <p className="text-xs font-mono text-indigo-500 capitalize">{role}</p>
                   </div>
                 </DropdownMenuLabel>
@@ -118,13 +118,41 @@ export function DashboardLayout() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
+            {/* Mobile Navigation Trigger Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
+
+        {/* 4. Mobile Dropdown Navigation Menu */}
+        {mobileMenuOpen && (
+          <div className="border-t bg-white px-4 py-3 dark:bg-zinc-950 md:hidden animate-in slide-in-from-top-2 duration-150">
+            <nav className="flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* --- MAIN CONTENT INJECTION POINT --- */}
-      <main className="container mx-auto flex-1 px-4 py-8 md:px-8">
+      <main className="container mx-auto flex-1 px-4 py-6 md:px-8 md:py-8">
         <Outlet />
       </main>
 

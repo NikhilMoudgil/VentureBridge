@@ -42,7 +42,6 @@ function greeting() {
   return "Good evening"
 }
 
-/** Runs a Supabase write, toasts the outcome, then refreshes dashboard data. */
 function useAction(refresh: () => void) {
   const [busy, setBusy] = useState<string | null>(null)
   const run = async (
@@ -87,16 +86,16 @@ function Header({ d, role }: { d: DashboardData; role: Role }) {
         ? `Add your ${d.missingFields[0]}`
         : "Keep your profile current"
   return (
-    <Reveal className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <Reveal className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
           {greeting()}, {d.name}
         </h1>
-        <p className="mt-2 max-w-xl text-zinc-500 dark:text-zinc-400">{SUBTITLE[role]}</p>
+        <p className="mt-2 max-w-xl text-sm text-zinc-500 sm:text-base dark:text-zinc-400">{SUBTITLE[role]}</p>
       </div>
       <Link
         to="/dashboard/profile"
-        className="flex items-center gap-3 self-start rounded-xl border border-zinc-200 bg-white/70 py-2 pl-2 pr-4 transition-colors hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:bg-zinc-900 sm:self-auto"
+        className="flex shrink-0 items-center gap-3 self-start rounded-xl border border-zinc-200 bg-white/70 py-2 pl-2 pr-4 transition-colors hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:bg-zinc-900 sm:self-auto"
       >
         <ProgressRing value={d.profileStrength} size={44} stroke={4} textClass="text-[11px]" />
         <span className="text-sm leading-tight">
@@ -108,7 +107,6 @@ function Header({ d, role }: { d: DashboardData; role: Role }) {
   )
 }
 
-/** The one loud element on the page. Each role passes its own visual. */
 function HeroPanel({
   label,
   title,
@@ -126,26 +124,26 @@ function HeroPanel({
 }) {
   return (
     <Reveal>
-      <section className="relative overflow-hidden rounded-2xl bg-zinc-950 p-6 text-zinc-50 md:p-8 dark:bg-zinc-900 dark:ring-1 dark:ring-white/10">
+      <section className="relative overflow-hidden rounded-2xl bg-zinc-950 p-5 sm:p-6 text-zinc-50 md:p-8 dark:bg-zinc-900 dark:ring-1 dark:ring-white/10">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full"
           style={{ background: "radial-gradient(closest-side, rgba(99,102,241,0.35), transparent)" }}
         />
-        <div className="relative grid gap-8 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:items-center">
+        <div className="relative grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:items-center">
           <div>
-            <p className="text-sm text-zinc-400">{label}</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{title}</h2>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-400">{body}</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400 sm:text-sm">{label}</p>
+            <h2 className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">{title}</h2>
+            <p className="mt-2 max-w-md text-xs leading-relaxed text-zinc-400 sm:text-sm">{body}</p>
             <Link
               to={to}
-              className="group mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="group mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-medium text-zinc-950 transition-colors hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:text-sm sm:py-2.5"
             >
               {cta}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
-          <div>{children}</div>
+          <div className="overflow-x-auto">{children}</div>
         </div>
       </section>
     </Reveal>
@@ -164,13 +162,12 @@ type Figure = {
   cta: string
 }
 
-/** Three headline numbers in a single ruled strip instead of three separate cards. */
 function Figures({ items }: { items: Figure[] }) {
   return (
     <Reveal>
       <div className="grid divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white/70 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         {items.map((f) => (
-          <div key={f.label} className="flex flex-col p-6">
+          <div key={f.label} className="flex flex-col p-5 sm:p-6">
             <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
               <span>{f.label}</span>
               <span className={f.iconClass}>{f.icon}</span>
@@ -178,24 +175,24 @@ function Figures({ items }: { items: Figure[] }) {
             <p
               className={cn(
                 "mt-3 font-semibold tracking-tight tabular-nums",
-                f.value !== undefined ? "text-4xl" : "text-2xl leading-[2.5rem]"
+                f.value !== undefined ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl leading-tight sm:leading-[2.5rem]"
               )}
             >
               {f.value !== undefined ? (
                 <>
                   <CountUp value={f.value} />
-                  <span className="ml-2 text-base font-medium text-zinc-500">{f.unit}</span>
+                  <span className="ml-2 text-sm font-medium text-zinc-500 sm:text-base">{f.unit}</span>
                 </>
               ) : (
                 f.text
               )}
             </p>
-            <p className="mt-1 text-sm text-zinc-500">{f.caption}</p>
+            <p className="mt-1 text-xs text-zinc-500 sm:text-sm">{f.caption}</p>
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="-ml-2.5 mt-4 self-start text-zinc-700 dark:text-zinc-300"
+              className="-ml-2.5 mt-3 self-start text-zinc-700 dark:text-zinc-300 sm:mt-4"
             >
               <Link to={f.to}>{f.cta}</Link>
             </Button>
@@ -220,12 +217,12 @@ function Panel({
   return (
     <Reveal className={className}>
       <section className="h-full rounded-xl border border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-900/40">
-        <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3.5 sm:px-5 sm:py-4 dark:border-zinc-800">
           <h3 className="text-sm font-medium">{title}</h3>
           {action && (
             <Link
               to={action.to}
-              className="text-sm text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
+              className="text-xs text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline sm:text-sm dark:hover:text-zinc-100"
             >
               {action.label}
             </Link>
@@ -241,13 +238,12 @@ function List({ children }: { children: ReactNode }) {
   return <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/60">{children}</ul>
 }
 
-/** A row that links somewhere. */
 function Row({ name, sub, trailing, to }: { name: string; sub?: string; trailing?: string; to: string }) {
   return (
     <li>
       <Link
         to={to}
-        className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+        className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-50 sm:px-5 dark:hover:bg-zinc-900"
       >
         <Initials name={name} />
         <div className="min-w-0 flex-1">
@@ -260,7 +256,6 @@ function Row({ name, sub, trailing, to }: { name: string; sub?: string; trailing
   )
 }
 
-/** A row with buttons on the right (can't be a link, since buttons can't live inside one). */
 function ActionRow({
   name,
   sub,
@@ -273,20 +268,24 @@ function ActionRow({
   children: ReactNode
 }) {
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3.5">
-      <Initials name={name} />
-      <div className="min-w-0 flex-1 basis-40">
-        <p className="truncate text-sm font-medium">{name}</p>
-        {sub && <p className="truncate text-xs text-zinc-500">{sub}</p>}
+    <li className="flex flex-col gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-x-3 sm:gap-y-2 sm:px-5">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Initials name={name} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{name}</p>
+          {sub && <p className="truncate text-xs text-zinc-500">{sub}</p>}
+        </div>
       </div>
-      {meta && <span className="hidden text-xs text-zinc-500 sm:block">{meta}</span>}
-      <div className="flex shrink-0 items-center gap-2">{children}</div>
+      <div className="flex items-center justify-between gap-2 sm:justify-end">
+        {meta && <span className="text-xs text-zinc-500">{meta}</span>}
+        <div className="flex shrink-0 items-center gap-2">{children}</div>
+      </div>
     </li>
   )
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="px-5 py-8 text-sm leading-relaxed text-zinc-500">{children}</p>
+  return <p className="px-4 py-8 text-sm leading-relaxed text-zinc-500 sm:px-5">{children}</p>
 }
 
 function MessagesPanel({ items }: { items: Activity[] }) {
@@ -311,56 +310,56 @@ function MessagesPanel({ items }: { items: Activity[] }) {
 
 type Milestone = { label: string; hint: string; done: boolean }
 
-/** A line that draws itself up to the last milestone you've reached. */
 function PathVisual({ items }: { items: Milestone[] }) {
   const n = items.length
   const last = items.reduce((acc, m, i) => (m.done ? i : acc), -1)
   const next = items.findIndex((m) => !m.done)
-  // Column i starts at i/n of the width plus its share of the 0.5rem gaps; the node centre is 12px in.
   const at = (i: number) => `calc(${(i / n) * 100}% + ${(i / n) * 0.5}rem)`
   return (
-    <div className="relative">
-      <div className="absolute left-3 top-3 h-px bg-white/15" style={{ width: at(n - 1) }} />
-      <motion.div
-        className="absolute left-3 top-3 h-px origin-left bg-indigo-400"
-        style={{ width: at(n - 1) }}
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: last <= 0 ? 0 : last / (n - 1) }}
-        transition={{ duration: 1.1, ease: "easeOut", delay: 0.7 }}
-      />
-      <ol className="relative grid gap-2" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
-        {items.map((m, i) => (
-          <li key={m.label}>
-            <motion.span
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.5 + i * 0.1 }}
-              className={cn(
-                "relative grid h-6 w-6 place-items-center rounded-full",
-                m.done
-                  ? "bg-indigo-400 text-zinc-950"
-                  : i === next
-                    ? "bg-zinc-950 ring-2 ring-white dark:bg-zinc-900"
-                    : "bg-zinc-950 ring-1 ring-white/25 dark:bg-zinc-900"
-              )}
-            >
-              {m.done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-              {i === next && (
-                <span className="absolute -inset-1.5 animate-ping rounded-full ring-1 ring-white/50 [animation-duration:2.4s] motion-reduce:animate-none" />
-              )}
-            </motion.span>
-            <p
-              className={cn(
-                "mt-3 text-[11px] font-medium sm:text-xs",
-                m.done || i === next ? "text-zinc-50" : "text-zinc-500"
-              )}
-            >
-              {m.label}
-            </p>
-            <p className="mt-0.5 hidden text-xs leading-snug text-zinc-500 sm:block">{m.hint}</p>
-          </li>
-        ))}
-      </ol>
+    <div className="relative min-w-[280px] overflow-x-auto pb-2 pt-1">
+      <div className="relative">
+        <div className="absolute left-3 top-3 h-px bg-white/15" style={{ width: at(n - 1) }} />
+        <motion.div
+          className="absolute left-3 top-3 h-px origin-left bg-indigo-400"
+          style={{ width: at(n - 1) }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: last <= 0 ? 0 : last / (n - 1) }}
+          transition={{ duration: 1.1, ease: "easeOut", delay: 0.7 }}
+        />
+        <ol className="relative grid gap-1.5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+          {items.map((m, i) => (
+            <li key={m.label}>
+              <motion.span
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.5 + i * 0.1 }}
+                className={cn(
+                  "relative grid h-6 w-6 place-items-center rounded-full",
+                  m.done
+                    ? "bg-indigo-400 text-zinc-950"
+                    : i === next
+                      ? "bg-zinc-950 ring-2 ring-white dark:bg-zinc-900"
+                      : "bg-zinc-950 ring-1 ring-white/25 dark:bg-zinc-900"
+                )}
+              >
+                {m.done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                {i === next && (
+                  <span className="absolute -inset-1.5 animate-ping rounded-full ring-1 ring-white/50 [animation-duration:2.4s] motion-reduce:animate-none" />
+                )}
+              </motion.span>
+              <p
+                className={cn(
+                  "mt-2 text-[10px] font-medium leading-tight sm:mt-3 sm:text-xs",
+                  m.done || i === next ? "text-zinc-50" : "text-zinc-500"
+                )}
+              >
+                {m.label}
+              </p>
+              <p className="mt-0.5 hidden text-xs leading-snug text-zinc-500 sm:block">{m.hint}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   )
 }
@@ -522,8 +521,8 @@ function FounderView({ d }: { d: DashboardData }) {
 function QueueVisual({ people, total }: { people: Person[]; total: number }) {
   if (!total) return <p className="text-sm text-zinc-500">Nothing in your queue right now.</p>
   return (
-    <div className="flex items-center gap-5">
-      <p className="text-6xl font-semibold tabular-nums tracking-tight">
+    <div className="flex items-center gap-4 sm:gap-5">
+      <p className="text-4xl sm:text-6xl font-semibold tabular-nums tracking-tight">
         <CountUp value={total} />
       </p>
       <div className="flex -space-x-3">
@@ -536,7 +535,7 @@ function QueueVisual({ people, total }: { people: Person[]; total: number }) {
           >
             <Initials
               name={p.full_name || "?"}
-              className="h-11 w-11 bg-white text-zinc-950 ring-2 ring-zinc-950 dark:bg-white dark:text-zinc-950 dark:ring-zinc-900"
+              className="h-9 w-9 sm:h-11 sm:w-11 bg-white text-zinc-950 ring-2 ring-zinc-950 dark:bg-white dark:text-zinc-950 dark:ring-zinc-900"
             />
           </motion.div>
         ))}
@@ -549,7 +548,6 @@ function MentorView({ d }: { d: DashboardData }) {
   const waiting = d.pendingRequests
   const { busy, run } = useAction(d.refresh)
 
-  // Same write the Network page makes when a mentor responds
   const respond = (founderId: string, status: "accepted" | "declined") =>
     run(
       founderId,
@@ -690,7 +688,7 @@ function PipelineVisual({ counts }: { counts: Record<string, number> }) {
           />
         ))}
       </div>
-      <ul className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+      <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:mt-5 sm:gap-x-6 sm:text-sm">
         {DEAL_STATUSES.map((st) => (
           <li key={st.key} className="flex items-center gap-2 text-zinc-400">
             <span className={cn("h-2 w-2 rounded-full", st.color)} />
@@ -712,7 +710,6 @@ function InvestorView({ d }: { d: DashboardData }) {
   const open = d.deals.filter(needsDecision).length
   const passed = counts.passed ?? 0
 
-  // Same write the Deal Flow page makes
   const decide = (dealId: string, status: "interested" | "passed") =>
     run(dealId, () => supabase.from("deal_flow").update({ status }).eq("id", dealId), `Deal marked as ${status}`)
 
@@ -738,7 +735,6 @@ function InvestorView({ d }: { d: DashboardData }) {
             to: "/dashboard/profile",
           }
 
-  // Pitches that need a decision first, newest first within each group
   const ordered = [...d.deals].sort((a, b) => Number(needsDecision(b)) - Number(needsDecision(a))).slice(0, 5)
 
   return (
