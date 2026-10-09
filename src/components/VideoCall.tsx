@@ -27,6 +27,8 @@ export function VideoCall({ roomId, onEndCall }: { roomId: string, onEndCall: ()
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       socket.emit('join-room', roomId);
+    }).catch(err => {
+      console.error("Failed to access camera/microphone:", err);
     });
 
     socket.on('user-connected', async (targetSocketId) => {
@@ -90,16 +92,20 @@ export function VideoCall({ roomId, onEndCall }: { roomId: string, onEndCall: ()
   const toggleMute = () => {
     if (localStreamRef.current) {
       const track = localStreamRef.current.getAudioTracks()[0];
-      track.enabled = !track.enabled;
-      setIsMuted(!track.enabled);
+      if (track) {
+        track.enabled = !track.enabled;
+        setIsMuted(!track.enabled);
+      }
     }
   };
 
   const toggleVideo = () => {
     if (localStreamRef.current) {
       const track = localStreamRef.current.getVideoTracks()[0];
-      track.enabled = !track.enabled;
-      setIsVideoOff(!track.enabled);
+      if (track) {
+        track.enabled = !track.enabled;
+        setIsVideoOff(!track.enabled);
+      }
     }
   };
 

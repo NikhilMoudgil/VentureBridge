@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, ArrowLeft } from "lucide-react"
+import { Send, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, ArrowLeft, Video } from "lucide-react"
 import { toast } from "sonner"
 import { VideoCall } from "@/components/VideoCall"
 
@@ -46,12 +46,17 @@ export function Messages() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
+  const [isInCall, setIsInCall] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!user) return
     fetchContacts()
   }, [user])
+
+  useEffect(() => {
+    setIsInCall(false)
+  }, [activeContact])
 
   useEffect(() => {
     if (!user || !activeContact) return
@@ -88,7 +93,6 @@ export function Messages() {
     setLoading(true)
 
     try {
-      // 1. Fetch accepted connections
       const { data: connections, error: connErr } = await supabase
         .from('connections')
         .select('founder_id, mentor_id, investor_id')
@@ -97,7 +101,6 @@ export function Messages() {
 
       if (connErr) console.error("Connections error:", connErr)
 
-      // 2. Fetch interested deals
       const { data: deals, error: dealErr } = await supabase
         .from('deal_flow')
         .select('founder_id, investor_id')
@@ -120,7 +123,6 @@ export function Messages() {
       const idsArray = Array.from(contactIds)
 
       if (idsArray.length > 0) {
-        // 3. Fetch users matching exact valid columns from schema
         const { data: usersData, error: usersErr } = await supabase
           .from('users')
           .select('id, full_name, role')
@@ -132,7 +134,6 @@ export function Messages() {
           return
         }
 
-        // 4. Safely query industry/firm details from role-specific tables
         const [foundersRes, mentorsRes, investorsRes] = await Promise.all([
           supabase.from('founders').select('id, industry').in('id', idsArray),
           supabase.from('mentors').select('id, industry').in('id', idsArray),
@@ -292,7 +293,14 @@ export function Messages() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                 <VideoCall roomId={activeContact.id} onEndCall={() => {}} />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsInCall(true)}
+                  title="Start Video Call"
+                >
+                  <Video className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+                </Button>
               </div>
             </header>
 
@@ -354,13 +362,21 @@ export function Messages() {
           </>
         ) : (
           <div className="hidden md:flex h-full flex-col items-center justify-center text-zinc-500">
-             <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
                 <Send className="h-6 w-6 text-zinc-400" />
-             </div>
-             <p>Select a conversation to start messaging</p>
+            </div>
+            <p>Select a conversation to start messaging</p>
           </div>
         )}
       </div>
+
+      {/* Video Call Modal Overlay */}
+      {isInCall && activeContact && (
+        <VideoCall 
+          roomId={activeContact.id} 
+          onEndCall={() => setIsInCall(false)} 
+        />
+      )}
     </div>
   )
 }
