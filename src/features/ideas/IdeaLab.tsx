@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
-import { Sparkles, Save, AlertTriangle, Target, HelpCircle } from "lucide-react"
+import { Sparkles, Save, AlertTriangle, Target, HelpCircle, Rocket, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/client"
 import { useAuth } from "@/app/AuthProvider"
+import { checkIdea } from "./ideaCheck"
 
 const supabase = createClient()
 
@@ -20,16 +22,15 @@ export function IdeaLab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // AI State
-  const [aiAnalyzing, setAiAnalyzing] = useState(false)
-  const [aiResults, setAiResults] = useState<{ risks: string[], audience: string, questions: string[] } | null>(null)
-
   const [formData, setFormData] = useState({
     problem: "",
     solution: "",
     market: "",
     techStack: ""
   })
+
+  // Instant, rule-based feedback on the current draft (no network, no cost)
+  const check = useMemo(() => checkIdea(formData), [formData])
 
   useEffect(() => {
     async function loadDraft() {
@@ -81,30 +82,6 @@ export function IdeaLab() {
     }
   }
 
-  const runAIAnalysis = () => {
-    if (!formData.problem || !formData.solution) {
-      toast.error("Please fill out the Problem and Solution fields first.")
-      return
-    }
-    
-    setAiAnalyzing(true)
-    setTimeout(() => {
-      setAiResults({
-        risks: [
-          "Customer acquisition cost (CAC) might exceed lifetime value in this specific niche.",
-          "High dependency on third-party integrations limits your technical moat."
-        ],
-        audience: "The current pitch targets a broad audience. Focus on early-stage adopters first.",
-        questions: [
-          "How will you acquire your first 100 paying users without paid ads?",
-          "What happens if a major competitor replicates this feature?"
-        ]
-      })
-      setAiAnalyzing(false)
-      toast.success("AI Diagnostic Complete")
-    }, 2000)
-  }
-
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading IdeaLab workspace...</div>
 
   return (
@@ -113,66 +90,104 @@ export function IdeaLab() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">IdeaLab</h1>
           <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-            Structure your venture hypothesis and run AI validation.
+            Structure your venture hypothesis and check how strong your draft is.
           </p>
         </div>
         <div className="mt-4 flex gap-3 md:mt-0">
           <Sheet>
             <SheetTrigger asChild>
-              <Button onClick={runAIAnalysis} variant="secondary" className="gap-2">
-                <Sparkles className="h-4 w-4" /> {aiAnalyzing ? "Analyzing..." : "AI Diagnostics"}
+              <Button type="button" variant="secondary" className="gap-2">
+                <Sparkles className="h-4 w-4" /> Idea Check
               </Button>
             </SheetTrigger>
             <SheetContent className="w-full sm:max-w-md">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-indigo-500" /> 
-                  AI Diagnostic Report
+                  <Sparkles className="h-5 w-5 text-indigo-500" />
+                  Idea Check
                 </SheetTitle>
                 <SheetDescription>
-                  Automated risk analysis and market feedback based on your current IdeaLab draft.
+                  Instant feedback on how complete and specific your draft is. It updates as you type.
                 </SheetDescription>
               </SheetHeader>
               <ScrollArea className="mt-6 h-[calc(100vh-8rem)] pr-4">
-                {aiAnalyzing ? (
-                  <div className="flex flex-col items-center justify-center space-y-4 py-12">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-indigo-500" />
-                    <p className="text-sm text-zinc-500">Evaluating assumptions...</p>
-                  </div>
-                ) : aiResults ? (
+                {!check.hasContent ? (
+                  <div className="py-12 text-center text-sm text-zinc-500">{check.verdict}</div>
+                ) : (
                   <div className="space-y-6 pb-8">
                     <div className="space-y-3">
-                      <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" /> Core Risks
-                      </h4>
-                      <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                        {aiResults.risks.map((risk, i) => (
-                          <li key={i} className="rounded-md border p-3 dark:border-zinc-800">{risk}</li>
-                        ))}
-                      </ul>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm font-medium">Draft strength</span>
+                        <span className="text-2xl font-semibold tabular-nums">{check.score}<span className="text-sm font-normal text-zinc-500"> / 100</span></span>
+                      </div>
+                      <Progress value={check.score} className="h-2" />
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">{check.verdict}</p>
                     </div>
+
+                    {check.strengths.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" /> What's working
+                        </h4>
+                        <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                          {check.strengths.map((s, i) => (
+                            <li key={i} className="rounded-md border p-3 dark:border-zinc-800">{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     <div className="space-y-3">
                       <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
-                        <Target className="h-4 w-4 text-emerald-500" /> Market Positioning
+                        <AlertTriangle className="h-4 w-4 text-amber-500" /> Gaps to fix
+                      </h4>
+                      {check.risks.length === 0 ? (
+                        <p className="rounded-md border p-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+                          No obvious gaps in how the draft is written. The real risks are the ones only customers can confirm.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                          {check.risks.map((r, i) => (
+                            <li key={i} className="rounded-md border p-3 dark:border-zinc-800">{r}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
+                        <Target className="h-4 w-4 text-emerald-500" /> Who to talk to first
                       </h4>
                       <div className="rounded-md border p-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                        {aiResults.audience}
+                        {check.audience}
                       </div>
                     </div>
+
                     <div className="space-y-3">
                       <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
-                        <HelpCircle className="h-4 w-4 text-blue-500" /> Validation Questions
+                        <HelpCircle className="h-4 w-4 text-blue-500" /> Questions to answer with real customers
                       </h4>
                       <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                        {aiResults.questions.map((q, i) => (
+                        {check.questions.map((q, i) => (
                           <li key={i} className="rounded-md border p-3 dark:border-zinc-800">{q}</li>
                         ))}
                       </ul>
                     </div>
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-sm text-zinc-500">
-                    No data to display. Please run the analysis.
+
+                    <div className="space-y-3">
+                      <h4 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
+                        <Rocket className="h-4 w-4 text-indigo-500" /> First steps
+                      </h4>
+                      <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        {check.mvpSteps.map((step, i) => (
+                          <li key={i} className="rounded-md border p-3 dark:border-zinc-800">{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <p className="text-xs leading-relaxed text-zinc-500">
+                      These are rule-based checks on how the draft is written. They can't tell you whether the market wants it. Only customers can, so log what you learn in the Validation Lab.
+                    </p>
                   </div>
                 )}
               </ScrollArea>

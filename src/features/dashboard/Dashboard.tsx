@@ -443,8 +443,8 @@ function FounderView({ d }: { d: DashboardData }) {
           label: "IdeaLab pitch studio",
           icon: <Lightbulb className="h-4 w-4" />,
           iconClass: "text-amber-500",
-          text: "AI Validator",
-          caption: "Pressure-test your pitch before you share it",
+          text: "Idea Check",
+          caption: "Check your draft for gaps before you share it",
           to: "/dashboard/idealab",
           cta: "Open IdeaLab",
         }
