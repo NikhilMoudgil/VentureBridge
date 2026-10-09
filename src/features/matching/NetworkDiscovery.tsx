@@ -50,33 +50,51 @@ export function NetworkDiscovery() {
         const role = userData.role as 'founder' | 'mentor' | 'investor'
         setCurrentUserRole(role)
 
+        // Load specific current user profile details
         if (role === 'founder') {
           const { data: founderData } = await supabase.from('founders').select('*').eq('id', user.id).maybeSingle()
           if (founderData) setCurrentUserProfile({ ...founderData, role: 'founder' })
 
           const { data: ideaData } = await supabase.from('ideas').select('id').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
           if (ideaData) setFounderIdeaId(ideaData.id)
-
-          const { data: mentorsData } = await supabase.from('mentors').select('*')
-          const { data: investorsData } = await supabase.from('investors').select('*')
-
-          setProfiles([
-            ...(mentorsData?.map(m => ({ ...m, role: 'mentor' as const })) || []),
-            ...(investorsData?.map(i => ({ ...i, role: 'investor' as const })) || [])
-          ])
-          
-        } else if (role === 'mentor' || role === 'investor') {
+        } else {
           const table = role === 'mentor' ? 'mentors' : 'investors'
           const { data: profileData } = await supabase.from(table).select('*').eq('id', user.id).maybeSingle()
           if (profileData) setCurrentUserProfile({ ...profileData, role })
-
-          const { data: foundersData } = await supabase.from('founders').select('*')
-          if (foundersData) {
-            const founderIds = foundersData.map(f => f.id)
-            const { data: ideasData } = await supabase.from('ideas').select('*').in('owner_id', founderIds)
-            setProfiles(foundersData.map(f => ({ ...f, role: 'founder', idea: ideasData?.find(i => i.owner_id === f.id) })))
-          }
         }
+
+        // Fetch everyone else accurately synced with the `users` table roles
+        const [
+          { data: allUsers },
+          { data: foundersData },
+          { data: mentorsData },
+          { data: investorsData },
+          { data: ideasData }
+        ] = await Promise.all([
+          supabase.from('users').select('id, role').neq('id', user.id), // Ensure we don't see ourselves
+          supabase.from('founders').select('*'),
+          supabase.from('mentors').select('*'),
+          supabase.from('investors').select('*'),
+          supabase.from('ideas').select('*')
+        ]);
+
+        const matchedProfiles: NetworkProfile[] = [];
+        
+        if (allUsers) {
+          allUsers.forEach(u => {
+            if (u.role === 'founder' && foundersData) {
+              const f = foundersData.find(x => x.id === u.id);
+              if (f) matchedProfiles.push({ ...f, role: 'founder', idea: ideasData?.find(i => i.owner_id === u.id) });
+            } else if (u.role === 'mentor' && mentorsData) {
+              const m = mentorsData.find(x => x.id === u.id);
+              if (m) matchedProfiles.push({ ...m, role: 'mentor' });
+            } else if (u.role === 'investor' && investorsData) {
+              const i = investorsData.find(x => x.id === u.id);
+              if (i) matchedProfiles.push({ ...i, role: 'investor' });
+            }
+          });
+        }
+        setProfiles(matchedProfiles)
 
         const { data: connData } = await supabase.from('connections').select('*').or(`founder_id.eq.${user.id},mentor_id.eq.${user.id}`)
         if (connData) setConnections(connData)
@@ -91,12 +109,8 @@ export function NetworkDiscovery() {
 
     if (!user) return
     const channel = supabase.channel('network_discovery_updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_flow' }, () => {
-        fetchNetwork()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'connections' }, () => {
-        fetchNetwork()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_flow' }, () => fetchNetwork())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'connections' }, () => fetchNetwork())
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -132,6 +146,7 @@ export function NetworkDiscovery() {
     try {
       const { error } = await supabase.from('connections').insert({ founder_id: user.id, mentor_id: targetId, status: 'pending' })
       if (error) throw error
+      setConnections(prev => [...prev, { founder_id: user.id, mentor_id: targetId, status: 'pending' }])
       toast.success(`Connection request sent to ${targetName}`)
     } catch (err: any) { toast.error("Failed to send request.") }
   }
@@ -145,6 +160,7 @@ export function NetworkDiscovery() {
     try {
       const { error } = await supabase.from('deal_flow').insert({ founder_id: user.id, investor_id: targetId, idea_id: founderIdeaId, status: 'submitted' })
       if (error) throw error
+      setDealFlows(prev => [...prev, { founder_id: user.id, investor_id: targetId, idea_id: founderIdeaId, status: 'submitted' }])
       toast.success(`Pitch submitted to ${targetName}!`)
     } catch (err: any) { toast.error("Failed to submit pitch.") }
   }
@@ -154,8 +170,38 @@ export function NetworkDiscovery() {
     try {
       const { error } = await supabase.from('connections').update({ status: newStatus }).match({ founder_id: founderId, mentor_id: user.id })
       if (error) throw error
+      setConnections(prev => prev.map(c => c.founder_id === founderId && c.mentor_id === user.id ? { ...c, status: newStatus } : c))
       toast.success(`Request ${newStatus}!`)
     } catch (err: any) { toast.error("Failed to update.") }
+  }
+
+  const handleRemoveConnection = async (targetId: string, targetRole: string) => {
+    if (!user) return
+    try {
+      if (targetRole === 'mentor' || currentUserRole === 'mentor') {
+        const { error } = await supabase.from('connections').delete().match({
+          founder_id: currentUserRole === 'founder' ? user.id : targetId,
+          mentor_id: currentUserRole === 'mentor' ? user.id : targetId
+        })
+        if (error) throw error
+        setConnections(prev => prev.filter(c => !(
+          (c.founder_id === user.id && c.mentor_id === targetId) ||
+          (c.founder_id === targetId && c.mentor_id === user.id)
+        )))
+        toast.success("Connection removed.")
+      } else if (targetRole === 'investor' || currentUserRole === 'investor') {
+        const { error } = await supabase.from('deal_flow').delete().match({
+          founder_id: currentUserRole === 'founder' ? user.id : targetId,
+          investor_id: currentUserRole === 'investor' ? user.id : targetId
+        })
+        if (error) throw error
+        setDealFlows(prev => prev.filter(d => !(
+          (d.founder_id === user.id && d.investor_id === targetId) ||
+          (d.founder_id === targetId && d.investor_id === user.id)
+        )))
+        toast.success("Pitch removed.")
+      }
+    } catch (err: any) { toast.error("Failed to remove.") }
   }
 
   const getStatus = (profileId: string, targetRole: string) => {
@@ -180,7 +226,7 @@ export function NetworkDiscovery() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Network Discovery</h1>
           <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
-            {currentUserRole === 'founder' ? "Connect with Mentors or pitch to Investors." : "Scout the ecosystem for high-signal founders."}
+            {currentUserRole === 'founder' ? "Connect with Mentors or pitch to Investors." : "Scout the ecosystem for high-signal founders and peers."}
           </p>
         </div>
         <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -239,6 +285,7 @@ export function NetworkDiscovery() {
                   <FileText className="h-3.5 w-3.5" /> Profile
                 </Button>
 
+                {/* Founder Actions */}
                 {currentUserRole === 'founder' && profile.role === 'mentor' && !status && (
                   <Button size="sm" onClick={() => handleConnectMentor(profile.id, profile.full_name)} className="w-full sm:w-1/2 gap-1 text-xs"><UserPlus className="h-3.5 w-3.5" /> Connect</Button>
                 )}
@@ -248,26 +295,32 @@ export function NetworkDiscovery() {
                 )}
 
                 {currentUserRole === 'founder' && (status === 'pending' || status === 'submitted' || status === 'reviewing') && (
-                  <Button size="sm" variant="secondary" className="w-full sm:w-1/2 text-xs px-1" disabled><Clock className="h-3.5 w-3.5 mr-1" /> {status === 'pending' ? 'Pending' : 'In Review'}</Button>
+                  <Button size="sm" variant="secondary" className="w-full sm:w-1/2 text-xs px-1 hover:bg-red-100 hover:text-red-600 transition-colors" onClick={() => handleRemoveConnection(profile.id, profile.role)}><X className="h-3.5 w-3.5 mr-1" /> Withdraw</Button>
                 )}
+                
                 {currentUserRole === 'founder' && (status === 'accepted' || status === 'interested') && (
-                  <Button size="sm" variant="outline" className="w-full sm:w-1/2 border-emerald-500 text-emerald-600 bg-emerald-50 text-xs px-1" disabled><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected</Button>
+                  <Button size="sm" variant="outline" className="w-full sm:w-1/2 border-emerald-500 text-emerald-600 bg-emerald-50 text-xs px-1 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={() => handleRemoveConnection(profile.id, profile.role)}><X className="h-3.5 w-3.5 mr-1" /> Disconnect</Button>
                 )}
-                {currentUserRole === 'founder' && status === 'passed' && (
-                  <Button size="sm" variant="outline" className="w-full sm:w-1/2 border-red-200 text-red-500 bg-red-50 text-xs px-1" disabled><X className="h-3.5 w-3.5 mr-1" /> Passed</Button>
+                
+                {currentUserRole === 'founder' && (status === 'passed' || status === 'declined') && (
+                  <Button size="sm" variant="outline" className="w-full sm:w-1/2 border-red-200 text-red-500 bg-red-50 text-xs px-1 hover:bg-red-100 transition-colors" onClick={() => handleRemoveConnection(profile.id, profile.role)}><X className="h-3.5 w-3.5 mr-1" /> Clear</Button>
                 )}
 
-                {currentUserRole === 'mentor' && status === 'pending' && (
+                {/* Mentor Actions */}
+                {currentUserRole === 'mentor' && profile.role === 'founder' && status === 'pending' && (
                   <div className="flex gap-1 w-full sm:w-1/2">
                     <Button size="sm" className="w-1/2 bg-emerald-600 text-white text-[10px] px-1" onClick={() => handleUpdateMentorStatus(profile.id, 'accepted')}>Accept</Button>
                     <Button size="sm" variant="outline" className="w-1/2 text-red-600 text-[10px] px-1" onClick={() => handleUpdateMentorStatus(profile.id, 'declined')}>Decline</Button>
                   </div>
                 )}
-                {(currentUserRole === 'mentor' || currentUserRole === 'investor') && !status && (
-                  <div className="w-full sm:w-1/2 text-xs text-zinc-400 flex items-center justify-center py-1">Scouting Mode</div>
+                
+                {(currentUserRole === 'mentor' || currentUserRole === 'investor') && profile.role === 'founder' && (status === 'accepted' || status === 'interested') && (
+                  <Button size="sm" variant="outline" className="w-full sm:w-1/2 border-emerald-500 text-emerald-600 bg-emerald-50 text-xs px-1 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={() => handleRemoveConnection(profile.id, 'founder')}><X className="h-3.5 w-3.5 mr-1" /> Disconnect</Button>
                 )}
-                {(currentUserRole === 'mentor' || currentUserRole === 'investor') && (status === 'accepted' || status === 'interested') && (
-                  <Button size="sm" variant="outline" className="w-full sm:w-1/2 border-emerald-500 text-emerald-600 bg-emerald-50 text-xs px-1" disabled><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected</Button>
+
+                {/* Peer Visibility (Scouting Mode) */}
+                {(currentUserRole === 'mentor' || currentUserRole === 'investor') && (!status || profile.role !== 'founder') && (
+                  <div className="w-full sm:w-1/2 text-xs text-zinc-400 flex items-center justify-center py-1">Scouting Mode</div>
                 )}
               </CardFooter>
             </Card>
