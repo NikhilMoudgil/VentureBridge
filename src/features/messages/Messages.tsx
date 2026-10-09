@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/client"
 import { useAuth } from "@/app/AuthProvider"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, Video, ArrowLeft } from "lucide-react"
+import { Send, Sparkles, Calendar, HelpCircle, TrendingUp, Compass, Clock, Trash2, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { VideoCall } from "@/components/VideoCall"
 
@@ -14,7 +14,7 @@ const supabase = createClient()
 type Contact = {
   id: string
   full_name: string
-  role: 'Founder' | 'Mentor' | 'Investor'
+  role: 'Founder' | 'Mentor' | 'Investor' | string
   industry?: string
 }
 
@@ -58,8 +58,13 @@ export function Messages() {
     fetchMessages()
 
     const channel = supabase
-      .channel('realtime:messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload) => {
+      .channel(`chat_${user.id}_${activeContact.id}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages', 
+        filter: `receiver_id=eq.${user.id}` 
+      }, (payload) => {
         if (payload.new.sender_id === activeContact.id) {
           setMessages((prev) => [...prev, payload.new as Message])
           scrollToBottom()
@@ -81,53 +86,96 @@ export function Messages() {
   const fetchContacts = async () => {
     if (!user) return
     setLoading(true)
-    
-    // Fetch connections where the user is either the founder or mentor (accepted)
-    const { data: connections } = await supabase
-      .from('connections')
-      .select('founder_id, mentor_id')
-      .eq('status', 'accepted')
-      .or(`founder_id.eq.${user.id},mentor_id.eq.${user.id}`)
 
-    // Fetch deal flow where status is interested
-    const { data: deals } = await supabase
-      .from('deal_flow')
-      .select('founder_id, investor_id')
-      .eq('status', 'interested')
-      .or(`founder_id.eq.${user.id},investor_id.eq.${user.id}`)
+    try {
+      // 1. Fetch accepted connections
+      const { data: connections, error: connErr } = await supabase
+        .from('connections')
+        .select('founder_id, mentor_id, investor_id')
+        .eq('status', 'accepted')
+        .or(`founder_id.eq.${user.id},mentor_id.eq.${user.id},investor_id.eq.${user.id}`)
 
-    const contactIds = new Set<string>()
-    connections?.forEach(c => {
-      if (c.founder_id !== user.id) contactIds.add(c.founder_id)
-      if (c.mentor_id !== user.id) contactIds.add(c.mentor_id)
-    })
-    deals?.forEach(d => {
-      if (d.founder_id !== user.id) contactIds.add(d.founder_id)
-      if (d.investor_id !== user.id) contactIds.add(d.investor_id)
-    })
+      if (connErr) console.error("Connections error:", connErr)
 
-    if (contactIds.size > 0) {
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, full_name, role, industry')
-        .in('id', Array.from(contactIds))
-      
-      if (usersData) {
-        // @ts-ignore
-        setContacts(usersData)
+      // 2. Fetch interested deals
+      const { data: deals, error: dealErr } = await supabase
+        .from('deal_flow')
+        .select('founder_id, investor_id')
+        .eq('status', 'interested')
+        .or(`founder_id.eq.${user.id},investor_id.eq.${user.id}`)
+
+      if (dealErr) console.error("Deals error:", dealErr)
+
+      const contactIds = new Set<string>()
+      connections?.forEach(c => {
+        if (c.founder_id && c.founder_id !== user.id) contactIds.add(c.founder_id)
+        if (c.mentor_id && c.mentor_id !== user.id) contactIds.add(c.mentor_id)
+        if (c.investor_id && c.investor_id !== user.id) contactIds.add(c.investor_id)
+      })
+      deals?.forEach(d => {
+        if (d.founder_id && d.founder_id !== user.id) contactIds.add(d.founder_id)
+        if (d.investor_id && d.investor_id !== user.id) contactIds.add(d.investor_id)
+      })
+
+      const idsArray = Array.from(contactIds)
+
+      if (idsArray.length > 0) {
+        // 3. Fetch users matching exact valid columns from schema
+        const { data: usersData, error: usersErr } = await supabase
+          .from('users')
+          .select('id, full_name, role')
+          .in('id', idsArray)
+
+        if (usersErr) {
+          console.error("Users error:", usersErr)
+          setLoading(false)
+          return
+        }
+
+        // 4. Safely query industry/firm details from role-specific tables
+        const [foundersRes, mentorsRes, investorsRes] = await Promise.all([
+          supabase.from('founders').select('id, industry').in('id', idsArray),
+          supabase.from('mentors').select('id, industry').in('id', idsArray),
+          supabase.from('investors').select('id, firm_name').in('id', idsArray)
+        ])
+
+        const detailsMap = new Map<string, string>()
+        foundersRes.data?.forEach(f => { if (f.industry) detailsMap.set(f.id, f.industry) })
+        mentorsRes.data?.forEach(m => { if (m.industry) detailsMap.set(m.id, m.industry) })
+        investorsRes.data?.forEach(i => { if (i.firm_name) detailsMap.set(i.id, i.firm_name) })
+
+        if (usersData) {
+          const formattedContacts = usersData.map(u => ({
+            id: u.id,
+            full_name: u.full_name || 'Anonymous User',
+            role: (u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : 'User') as any,
+            industry: detailsMap.get(u.id) || 'General'
+          }))
+          setContacts(formattedContacts)
+        }
+      } else {
+        setContacts([])
       }
+    } catch (err) {
+      console.error("Fetch contacts error:", err)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const fetchMessages = async () => {
     if (!user || !activeContact) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('messages')
       .select('*')
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${activeContact.id}),and(sender_id.eq.${activeContact.id},receiver_id.eq.${user.id})`)
       .order('created_at', { ascending: true })
-    
+
+    if (error) {
+      console.error("Fetch messages error:", error)
+      return
+    }
+
     if (data) {
       setMessages(data)
       scrollToBottom()
@@ -139,7 +187,7 @@ export function Messages() {
     if (!user || !activeContact || !newMessage.trim()) return
 
     const msgText = newMessage.trim()
-    setNewMessage("") // Optimistic clear
+    setNewMessage("")
 
     const newMsgObj = {
       sender_id: user.id,
@@ -147,7 +195,6 @@ export function Messages() {
       content: msgText,
     }
 
-    // Optimistic UI update
     setMessages(prev => [...prev, { id: Date.now().toString(), ...newMsgObj, created_at: new Date().toISOString() }])
     scrollToBottom()
 
@@ -155,7 +202,7 @@ export function Messages() {
     
     if (error) {
       toast.error("Failed to send message")
-      fetchMessages() // Revert on failure
+      fetchMessages()
     }
   }
 
@@ -164,7 +211,7 @@ export function Messages() {
   return (
     <div className="flex h-[calc(100vh-6rem)] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       
-      {/* 1. Sidebar (Contact List) - Hidden on mobile if a contact is active */}
+      {/* Sidebar - Contacts List */}
       <div 
         className={`flex-col border-r border-zinc-200 dark:border-zinc-800 ${
           activeContact ? 'hidden md:flex md:w-80' : 'flex w-full md:w-80'
@@ -199,12 +246,12 @@ export function Messages() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate text-zinc-900 dark:text-zinc-100">{contact.full_name || 'Anonymous User'}</p>
+                      <p className="font-medium text-sm truncate text-zinc-900 dark:text-zinc-100">{contact.full_name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal h-4">
                           {contact.role}
                         </Badge>
-                        <span className="text-xs text-zinc-500 truncate">{contact.industry || 'General'}</span>
+                        <span className="text-xs text-zinc-500 truncate">{contact.industry}</span>
                       </div>
                     </div>
                   </button>
@@ -215,7 +262,7 @@ export function Messages() {
         </div>
       </div>
 
-      {/* 2. Main Chat Area - Hidden on mobile if NO contact is active */}
+      {/* Main Chat Area */}
       <div 
         className={`flex-col bg-zinc-50 dark:bg-zinc-900 ${
           !activeContact ? 'hidden md:flex md:flex-1' : 'flex flex-1 w-full'
@@ -223,10 +270,8 @@ export function Messages() {
       >
         {activeContact ? (
           <>
-            {/* Chat Header */}
             <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 md:px-6 dark:border-zinc-800 dark:bg-zinc-950">
               <div className="flex items-center gap-3">
-                {/* Mobile Back Button */}
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -242,8 +287,8 @@ export function Messages() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium text-sm">{activeContact.full_name || 'Anonymous User'}</h3>
-                  <p className="text-xs text-zinc-500 capitalize">{activeContact.role} • {activeContact.industry || 'General'}</p>
+                  <h3 className="font-medium text-sm">{activeContact.full_name}</h3>
+                  <p className="text-xs text-zinc-500 capitalize">{activeContact.role} • {activeContact.industry}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -251,7 +296,6 @@ export function Messages() {
               </div>
             </header>
 
-            {/* Chat Messages Log */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-3 opacity-60">
@@ -273,7 +317,6 @@ export function Messages() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Prompt Templates */}
             <div className="px-4 py-2 border-t border-zinc-200 bg-white/50 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/50">
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {activePrompts.map((prompt) => (
@@ -290,14 +333,13 @@ export function Messages() {
               </div>
             </div>
 
-            {/* Message Input Form */}
             <div className="p-4 bg-white border-t border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800">
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <Input 
                   value={newMessage} 
                   onChange={(e) => setNewMessage(e.target.value)} 
                   placeholder={`Message ${activeContact.full_name}...`} 
-                  className="rounded-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 px-4" 
+                  className="rounded-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 px-4 text-sm" 
                 />
                 <Button 
                   type="submit" 
