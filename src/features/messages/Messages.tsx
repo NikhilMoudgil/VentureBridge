@@ -47,6 +47,7 @@ export function Messages() {
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [isInCall, setIsInCall] = useState(false)
+  const [unreadContactIds, setUnreadContactIds] = useState<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -58,26 +59,65 @@ export function Messages() {
     setIsInCall(false)
   }, [activeContact])
 
+  // Helper to re-order contact list so active sender/receiver is moved to the top
+  const bumpContactToTop = (contactId: string) => {
+    setContacts((prevContacts) => {
+      const existingIdx = prevContacts.findIndex((c) => c.id === contactId)
+      if (existingIdx <= 0) return prevContacts
+      const targetContact = prevContacts[existingIdx]
+      const remaining = prevContacts.filter((c) => c.id !== contactId)
+      return [targetContact, ...remaining]
+    })
+  }
+
+  // Load active messages
   useEffect(() => {
     if (!user || !activeContact) return
     fetchMessages()
 
+    // Clear unread indicator for active contact
+    setUnreadContactIds((prev) => {
+      const next = new Set(prev)
+      next.delete(activeContact.id)
+      return next
+    })
+  }, [user, activeContact])
+
+  // Global Realtime listener for incoming messages to manage ordering & live updates
+  useEffect(() => {
+    if (!user) return
+
     const channel = supabase
-      .channel(`chat_${user.id}_${activeContact.id}`)
+      .channel(`global_messages_${user.id}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'messages', 
-        filter: `receiver_id=eq.${user.id}` 
+        table: 'messages'
       }, (payload) => {
-        if (payload.new.sender_id === activeContact.id) {
-          setMessages((prev) => [...prev, payload.new as Message])
+        const newMsg = payload.new as Message
+        const isSender = newMsg.sender_id === user.id
+        const isReceiver = newMsg.receiver_id === user.id
+
+        if (!isSender && !isReceiver) return
+
+        const otherId = isSender ? newMsg.receiver_id : newMsg.sender_id
+        bumpContactToTop(otherId)
+
+        if (activeContact && otherId === activeContact.id) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev
+            return [...prev, newMsg]
+          })
           scrollToBottom()
+        } else if (!isSender) {
+          setUnreadContactIds((prev) => new Set(prev).add(otherId))
         }
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [user, activeContact])
 
   useEffect(() => {
@@ -190,21 +230,37 @@ export function Messages() {
     const msgText = newMessage.trim()
     setNewMessage("")
 
-    const newMsgObj = {
-      sender_id: user.id,
-      receiver_id: activeContact.id,
-      content: msgText,
-    }
+    bumpContactToTop(activeContact.id)
 
-    setMessages(prev => [...prev, { id: Date.now().toString(), ...newMsgObj, created_at: new Date().toISOString() }])
-    scrollToBottom()
+    const { data: insertedMsg, error } = await supabase
+      .from('messages')
+      .insert([{
+        sender_id: user.id,
+        receiver_id: activeContact.id,
+        content: msgText,
+      }])
+      .select()
+      .single()
 
-    const { error } = await supabase.from('messages').insert([newMsgObj])
-    
     if (error) {
       toast.error("Failed to send message")
       fetchMessages()
+    } else if (insertedMsg) {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === insertedMsg.id)) return prev
+        return [...prev, insertedMsg as Message]
+      })
+      scrollToBottom()
     }
+  }
+
+  const handleSelectContact = (contact: Contact) => {
+    setActiveContact(contact)
+    setUnreadContactIds((prev) => {
+      const next = new Set(prev)
+      next.delete(contact.id)
+      return next
+    })
   }
 
   const activePrompts = role === 'founder' ? FOUNDER_PROMPTS : role === 'mentor' ? MENTOR_PROMPTS : INVESTOR_PROMPTS
@@ -235,29 +291,41 @@ export function Messages() {
             </div>
           ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-              {contacts.map((contact) => (
-                <li key={contact.id}>
-                  <button
-                    onClick={() => setActiveContact(contact)}
-                    className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${activeContact?.id === contact.id ? 'bg-zinc-50 dark:bg-zinc-900' : ''}`}
-                  >
-                    <Avatar className="h-10 w-10 border dark:border-zinc-800">
-                      <AvatarFallback className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                        {contact.full_name?.substring(0, 2).toUpperCase() || 'UN'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate text-zinc-900 dark:text-zinc-100">{contact.full_name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal h-4">
-                          {contact.role}
-                        </Badge>
-                        <span className="text-xs text-zinc-500 truncate">{contact.industry}</span>
+              {contacts.map((contact) => {
+                const hasUnread = unreadContactIds.has(contact.id)
+                return (
+                  <li key={contact.id}>
+                    <button
+                      onClick={() => handleSelectContact(contact)}
+                      className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${activeContact?.id === contact.id ? 'bg-zinc-50 dark:bg-zinc-900' : ''}`}
+                    >
+                      <div className="relative">
+                        <Avatar className="h-10 w-10 border dark:border-zinc-800">
+                          <AvatarFallback className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                            {contact.full_name?.substring(0, 2).toUpperCase() || 'UN'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {hasUnread && (
+                          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-zinc-950" />
+                        )}
                       </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className={`font-medium text-sm truncate ${hasUnread ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                            {contact.full_name}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal h-4">
+                            {contact.role}
+                          </Badge>
+                          <span className="text-xs text-zinc-500 truncate">{contact.industry}</span>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

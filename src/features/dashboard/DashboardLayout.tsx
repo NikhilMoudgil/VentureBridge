@@ -23,6 +23,7 @@ export function DashboardLayout() {
   const location = useLocation();
   const [role, setRole] = useState<'founder' | 'mentor' | 'investor' | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
     async function fetchRole() {
@@ -33,10 +34,35 @@ export function DashboardLayout() {
     fetchRole();
   }, [user]);
 
-  // Close mobile navigation drawer whenever the route changes
+  // Clear unread count when user opens the Messages page
   useEffect(() => {
     setMobileMenuOpen(false);
+    if (location.pathname === "/dashboard/messages") {
+      setUnreadCount(0);
+    }
   }, [location.pathname]);
+
+  // Realtime notification badge listener for incoming messages
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`nav_notifications_${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      }, (payload) => {
+        if (payload.new.receiver_id === user.id && location.pathname !== "/dashboard/messages") {
+          setUnreadCount((prev) => prev + 1);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, location.pathname]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -46,7 +72,6 @@ export function DashboardLayout() {
   const initials = user?.email?.substring(0, 2).toUpperCase() || "VB";
   const avatarUrl = user?.user_metadata?.avatar_url;
 
-  // Filter navigation links based on user role
   const navLinks = [
     { to: "/dashboard", label: "Home", show: true },
     { to: "/dashboard/idealab", label: "IdeaLab", show: role === "founder" },
@@ -70,14 +95,19 @@ export function DashboardLayout() {
           </Link>
 
           {/* 2. Desktop Navigation */}
-          <nav className="hidden gap-6 md:flex">
+          <nav className="hidden gap-6 md:flex items-center">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                className="relative flex items-center text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
               >
                 {link.label}
+                {link.to === "/dashboard/messages" && unreadCount > 0 && (
+                  <span className="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold text-white leading-none">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -123,11 +153,14 @@ export function DashboardLayout() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="relative md:hidden"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle Menu"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-indigo-600" />
+              )}
             </Button>
           </div>
         </div>
@@ -141,9 +174,14 @@ export function DashboardLayout() {
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
                 >
-                  {link.label}
+                  <span>{link.label}</span>
+                  {link.to === "/dashboard/messages" && unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
