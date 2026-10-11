@@ -86,7 +86,7 @@ export function ValidationLab() {
     async function loadHypotheses() {
       setHypLoading(true)
       const base = 'id, title, statement, status, experiments ( id, metric, result, evidence_score )'
-      let res = await supabase
+      let res: { data: any[] | null; error: { code?: string; message?: string } | null } = await supabase
         .from('hypotheses')
         .select(`id, title, statement, status, success_metric, success_threshold, test_method, experiments ( id, metric, result, evidence_score )`)
         .eq('idea_id', ideaId)

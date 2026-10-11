@@ -203,7 +203,7 @@ function mapIdea(r: Record<string, unknown>, ws: { blueprint: Blueprint; pitch_s
 // Ventures
 // ---------------------------------------------------------------------------------------------
 export async function listVentures(sb: Db, ownerId: string): Promise<VentureSummary[]> {
-  let res = await sb.from("ideas").select(SUMMARY_COLS).eq("owner_id", ownerId).order("updated_at", { ascending: false })
+  let res: { data: unknown; error: PgErr } = await sb.from("ideas").select(SUMMARY_COLS).eq("owner_id", ownerId).order("updated_at", { ascending: false })
   if (res.error && isMissingSchema(res.error)) {
     // Database upgrade not applied yet: keep pages that only list ventures working.
     res = await sb.from("ideas").select(LEGACY_SUMMARY_COLS).eq("owner_id", ownerId).order("updated_at", { ascending: false })
