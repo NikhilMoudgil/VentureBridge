@@ -10,8 +10,17 @@ import { Plus, Rocket, Target, Code, Calendar } from "lucide-react"
 
 const supabase = createClient()
 
+const STAGE_LABEL: Record<string, string> = {
+  idea: "Idea", research: "Researching", prototype: "Prototype", mvp: "MVP built",
+  early_traction: "Early traction", growth: "Growth",
+}
+
 type Idea = {
   id: string
+  name?: string | null
+  tagline?: string | null
+  startup_stage?: string | null
+  health_score?: number | null
   problem?: string
   solution?: string
   elevator_pitch?: string
@@ -56,7 +65,7 @@ export function MyVentures() {
           </p>
         </div>
         <div>
-          <Link to="/dashboard/idealab">
+          <Link to="/dashboard/idealab/new">
             <Button size="sm" className="gap-2 sm:size-default">
               <Plus className="h-4 w-4" /> New Venture
             </Button>
@@ -69,7 +78,7 @@ export function MyVentures() {
           <Rocket className="mb-4 h-10 w-10 text-zinc-300 sm:h-12 sm:w-12 dark:text-zinc-700" />
           <h3 className="text-base font-semibold text-zinc-900 sm:text-lg dark:text-zinc-50">No ventures found</h3>
           <p className="mb-4 mt-1 text-xs text-zinc-500 sm:text-sm">You haven't saved any drafts in the IdeaLab yet.</p>
-          <Link to="/dashboard/idealab">
+          <Link to="/dashboard/idealab/new">
             <Button variant="outline" size="sm">Start Building</Button>
           </Link>
         </div>
@@ -81,6 +90,8 @@ export function MyVentures() {
           const solutionText = idea.solution || idea.elevator_pitch || "No solution drafted yet."
           const marketText = idea.market || idea.target_market || "General"
           const snippet = solutionText.length > 100 ? solutionText.substring(0, 100) + "..." : solutionText
+          const title = idea.name?.trim() || `${marketText} Venture`
+          const stage = idea.startup_stage ? STAGE_LABEL[idea.startup_stage] ?? "Draft" : "Draft"
           
           return (
             <Dialog key={idea.id}>
@@ -88,13 +99,13 @@ export function MyVentures() {
                 <Card className="group cursor-pointer border-zinc-200 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:hover:border-zinc-700 dark:bg-zinc-950">
                   <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
                     <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="bg-indigo-50 text-[10px] text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">Draft</Badge>
+                      <Badge variant="secondary" className="bg-indigo-50 text-[10px] text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">{stage}</Badge>
                       <div className="flex items-center gap-1 text-xs text-zinc-400">
                         <Calendar className="h-3 w-3" /> {date}
                       </div>
                     </div>
                     <CardTitle className="mt-2 text-base line-clamp-1 sm:text-lg">
-                      {marketText} Venture
+                      {title}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
@@ -108,10 +119,10 @@ export function MyVentures() {
               <DialogContent className="max-h-[90vh] w-[95vw] max-w-2xl overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
                   <div className="mb-2 flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px]">Draft</Badge>
+                    <Badge variant="secondary" className="text-[10px]">{stage}</Badge>
                     <span className="text-xs text-zinc-500">Created: {date}</span>
                   </div>
-                  <DialogTitle className="text-xl sm:text-2xl">Venture Details</DialogTitle>
+                  <DialogTitle className="text-xl sm:text-2xl">{title}</DialogTitle>
                   <DialogDescription className="text-xs sm:text-sm">
                     Your saved hypothesis and technical parameters.
                   </DialogDescription>
@@ -155,8 +166,11 @@ export function MyVentures() {
                 </div>
                 
                 <div className="mt-6 flex justify-end gap-3 border-t pt-4 dark:border-zinc-800">
-                  <Link to="/dashboard/idealab">
-                    <Button size="sm" className="sm:size-default">Edit in IdeaLab</Button>
+                  <Link to={`/dashboard/validation?idea=${idea.id}`}>
+                    <Button size="sm" variant="outline" className="sm:size-default">Validation Lab</Button>
+                  </Link>
+                  <Link to={`/dashboard/idealab/${idea.id}`}>
+                    <Button size="sm" className="sm:size-default">Open workspace</Button>
                   </Link>
                 </div>
               </DialogContent>
