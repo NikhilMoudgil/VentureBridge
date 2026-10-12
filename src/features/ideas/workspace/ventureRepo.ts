@@ -173,7 +173,7 @@ export function mapHypothesis(r: RawHyp): HypothesisDetail {
   }
 }
 
-function mapIdea(r: Record<string, unknown>, ws: { blueprint: Blueprint; pitch_settings: PitchSettings }): Idea {
+export function mapIdea(r: Record<string, unknown>, ws: { blueprint: Blueprint; pitch_settings: PitchSettings }): Idea {
   return {
     id: String(r.id),
     name: (r.name as string | null) ?? null,
