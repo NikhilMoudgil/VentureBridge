@@ -55,8 +55,14 @@ export function NetworkDiscovery() {
           const { data: founderData } = await supabase.from('founders').select('*').eq('id', user.id).maybeSingle()
           if (founderData) setCurrentUserProfile({ ...founderData, role: 'founder' })
 
-          const { data: ideaData } = await supabase.from('ideas').select('id').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
-          if (ideaData) setFounderIdeaId(ideaData.id)
+          // Prefer the venture whose pitch the founder has shared; otherwise the newest venture.
+          const { data: sharedData } = await supabase.from('idea_pitch_shares').select('idea_id').eq('owner_id', user.id).order('updated_at', { ascending: false }).limit(1).maybeSingle()
+          if (sharedData?.idea_id) {
+            setFounderIdeaId(sharedData.idea_id)
+          } else {
+            const { data: ideaData } = await supabase.from('ideas').select('id').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+            if (ideaData) setFounderIdeaId(ideaData.id)
+          }
         } else {
           const table = role === 'mentor' ? 'mentors' : 'investors'
           const { data: profileData } = await supabase.from(table).select('*').eq('id', user.id).maybeSingle()
@@ -366,6 +372,12 @@ export function NetworkDiscovery() {
                       {selectedProfileModal.idea?.problem || "Not specified."}
                     </p>
                   </div>
+
+                  {(currentUserRole === 'investor' || currentUserRole === 'mentor') && selectedProfileModal.idea?.id ? (
+                    <Link to={`/dashboard/pitch/${selectedProfileModal.idea.id}`} className="inline-block text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                      View full pitch (if shared with you)
+                    </Link>
+                  ) : null}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">

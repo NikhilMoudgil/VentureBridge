@@ -8,6 +8,7 @@ import { EVIDENCE_LABEL, buildPitch, compilePitchMarkdown, legacyElevatorPitch, 
 import { computeScorecard } from "../scorecard"
 import type { VentureSnapshot } from "../types"
 import type { SectionProps } from "./nav"
+import { SharePanel } from "./SharePanel"
 
 const EVIDENCE_STYLE: Record<Evidence, string> = {
   founder: "text-indigo-700 dark:text-indigo-300",
@@ -115,6 +116,8 @@ export function PitchSection({ data, api }: SectionProps) {
           )
         })}
       </div>
+
+      <SharePanel idea={idea} resolved={resolved} />
 
       <Panel title="Publish and confirm" description="Two deliberate steps. Neither happens automatically.">
         <div className="space-y-2">

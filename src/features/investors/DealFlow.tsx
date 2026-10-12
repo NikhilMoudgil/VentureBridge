@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, CheckCircle2, X } from "lucide-react"
 import { toast } from "sonner"
+import { Link } from "react-router-dom"
 
 const supabase = createClient()
 
 type Deal = {
   id: string
+  idea_id?: string | null
   status: string
   founders: { full_name: string; industry: string }
   ideas: { elevator_pitch: string; problem: string; target_market: string; tech_stack: string }
@@ -28,7 +30,7 @@ export function DealFlow() {
       const { data, error } = await supabase
         .from('deal_flow')
         .select(`
-          id, status, 
+          id, status, idea_id, 
           founders(full_name, industry), 
           ideas(elevator_pitch, problem, target_market, tech_stack)
         `)
@@ -107,6 +109,11 @@ export function DealFlow() {
                 <div><span className="font-semibold text-zinc-700 dark:text-zinc-300">Stack:</span> {deal.ideas?.tech_stack}</div>
               </div>
             </CardContent>
+            {deal.idea_id ? (
+              <div className="px-4 pb-4 sm:px-6">
+                <Link to={`/dashboard/pitch/${deal.idea_id}`} className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">View full pitch</Link>
+              </div>
+            ) : null}
             
             {(deal.status === 'submitted' || deal.status === 'reviewing') && (
               <CardFooter className="border-t bg-zinc-50 p-3 sm:p-4 dark:border-zinc-800 dark:bg-zinc-900/50 flex flex-col sm:flex-row gap-2">

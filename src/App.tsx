@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "./app/ThemeProvider";
 import { IdeaLab, NewVenture } from "@/features/ideas/IdeaLab";
 import { VentureWorkspace } from "@/features/ideas/workspace/VentureWorkspace";
+import { PitchView } from "@/features/ideas/PitchView";
 import { MyVentures } from "@/features/ideas/MyVentures";
 import { NetworkDiscovery } from "@/features/matching/NetworkDiscovery";
 import { AdminLogin } from "@/features/auth/AdminLogin";
@@ -142,6 +143,7 @@ export default function App() {
             <Route path="idealab" element={<RoleRoute allow={["founder"]}><IdeaLab /></RoleRoute>} />
             <Route path="idealab/new" element={<RoleRoute allow={["founder"]}><NewVenture /></RoleRoute>} />
             <Route path="idealab/:ideaId" element={<RoleRoute allow={["founder"]}><VentureWorkspace /></RoleRoute>} />
+            <Route path="pitch/:ideaId" element={<RoleRoute allow={["founder", "investor", "mentor"]}><PitchView /></RoleRoute>} />
             <Route path="validation" element={<RoleRoute allow={["founder"]}><ValidationLab /></RoleRoute>} />
 
             {/* Investor-only Routes */}
