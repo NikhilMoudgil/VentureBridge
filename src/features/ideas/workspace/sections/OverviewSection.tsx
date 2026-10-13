@@ -66,11 +66,11 @@ export function OverviewSection({ data, api, status, next, indicators, go }: Sec
             onChange={v => api.setIdea({ startup_stage: (v || null) as StartupStage | null })} />
           <TextField id="v-industry" label="Industry" value={idea.industry ?? ""} onChange={v => api.setIdea({ industry: v })} />
           <TextField id="v-geo" label="Geographic focus" value={idea.geographic_focus ?? ""} onChange={v => api.setIdea({ geographic_focus: v })} />
-          <NumberField id="v-fund" label="Funding goal" value={idea.funding_goal} onChange={n => api.setIdea({ funding_goal: n })}
-            hint="Stored on the venture record, which other signed-in members can read." />
+          <NumberField id="v-fund" label="Funding goal" value={idea.funding_goal} onChange={n => api.setBlueprint(b => ({ ...b, funding: { ...b.funding, goal: n !== null && n >= 0 ? n : null } }))}
+            hint="Private to you. Others only see it if you share it in your pitch." />
         </div>
         <TextField id="v-use" label="Use of funds" placeholder="e.g. 60% product, 25% first customers, 15% legal"
-          value={idea.use_of_funds ?? ""} onChange={v => api.setIdea({ use_of_funds: v })} />
+          value={idea.use_of_funds ?? ""} onChange={v => api.setBlueprint(b => ({ ...b, funding: { ...b.funding, useOfFunds: v } }))} />
       </Panel>
 
       <Panel title="Scorecard at a glance" description="Each bar is the share of that checklist completed.">

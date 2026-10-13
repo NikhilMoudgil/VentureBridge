@@ -92,8 +92,8 @@ export type VentureSummary = {
 
 const IDEA_COLS =
   "id, owner_id, name, tagline, problem, solution, market, target_market, tech_stack, " +
-  "elevator_pitch, industry, startup_stage, business_model, geographic_focus, funding_goal, " +
-  "use_of_funds, pitch_ready_confirmed, health_score, row_version, updated_at"
+  "elevator_pitch, industry, startup_stage, business_model, geographic_focus, " +
+  "pitch_ready_confirmed, health_score, row_version, updated_at"
 
 const SUMMARY_COLS =
   "id, name, tagline, problem, solution, market, target_market, startup_stage, health_score, updated_at, created_at"
@@ -118,12 +118,12 @@ const numOrNull = (v: unknown): number | null => {
 
 export const IDEA_EDITABLE = [
   "name", "tagline", "problem", "solution", "market", "tech_stack", "elevator_pitch",
-  "industry", "startup_stage", "business_model", "geographic_focus", "funding_goal",
-  "use_of_funds", "pitch_ready_confirmed",
+  "industry", "startup_stage", "business_model", "geographic_focus",
+  "pitch_ready_confirmed",
 ] as const
 export type IdeaPatch = Partial<Pick<Idea, (typeof IDEA_EDITABLE)[number]>>
 
-const NULLABLE_TEXT = new Set(["name", "tagline", "industry", "business_model", "geographic_focus", "use_of_funds"])
+const NULLABLE_TEXT = new Set(["name", "tagline", "industry", "business_model", "geographic_focus"])
 
 /** Whitelists editable columns, mirrors market -> target_market, and turns blanks into NULL where the DB needs it. */
 export function toIdeaRow(patch: IdeaPatch): Record<string, unknown> {
@@ -133,9 +133,6 @@ export function toIdeaRow(patch: IdeaPatch): Record<string, unknown> {
     const v = (patch as Record<string, unknown>)[key]
     if (key === "startup_stage") {
       row[key] = typeof v === "string" && (STARTUP_STAGES as string[]).includes(v) ? v : null
-    } else if (key === "funding_goal") {
-      const n = numOrNull(v)
-      row[key] = n !== null && n >= 0 ? n : null
     } else if (key === "pitch_ready_confirmed") {
       row[key] = Boolean(v)
     } else if (NULLABLE_TEXT.has(key)) {
@@ -188,8 +185,9 @@ export function mapIdea(r: Record<string, unknown>, ws: { blueprint: Blueprint; 
     startup_stage: (r.startup_stage as StartupStage | null) ?? null,
     business_model: (r.business_model as string | null) ?? null,
     geographic_focus: (r.geographic_focus as string | null) ?? null,
-    funding_goal: numOrNull(r.funding_goal),
-    use_of_funds: (r.use_of_funds as string | null) ?? null,
+    // Funding ask comes from the owner-only workspace document, never from the readable `ideas` row.
+    funding_goal: (() => { const n = numOrNull(ws.blueprint.funding?.goal); return n !== null && n >= 0 ? n : null })(),
+    use_of_funds: ws.blueprint.funding?.useOfFunds?.trim() ? ws.blueprint.funding.useOfFunds : null,
     pitch_ready_confirmed: Boolean(r.pitch_ready_confirmed),
     blueprint: ws.blueprint,
     pitch_settings: ws.pitch_settings,

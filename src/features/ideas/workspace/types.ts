@@ -9,6 +9,8 @@ export type BillingInterval = "monthly" | "quarterly" | "annual" | "one_time"
 
 /** Bounded, evolving structures stored in idea_workspace.blueprint (JSONB, owner-only). */
 export type Blueprint = {
+  /** Funding ask. Lives here (owner-only table) so other members cannot read it from `ideas`. */
+  funding?: { goal?: number | null; useOfFunds?: string }
   problem?: {
     who?: string; context?: string; frequency?: string; severity?: string
     consequences?: string; workarounds?: string

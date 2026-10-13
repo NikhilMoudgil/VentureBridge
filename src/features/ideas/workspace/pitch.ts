@@ -181,7 +181,7 @@ export function buildPitch(s: VentureSnapshot, hyps: PitchHypothesis[]): PitchSe
   // Funding
   add("funding", "Funding needs",
     lines(typeof idea.funding_goal === "number" && `Seeking: ${fmt(idea.funding_goal)}`, kv("Use of funds", idea.use_of_funds)),
-    "founder", "Funding goal and use of funds are stored on the venture record, which other signed-in members can read.")
+    "founder", "Private to you. Other members only see this if you include this section in a shared pitch.")
 
   // Risks
   const top = [...risks].sort((a, c) => c.likelihood * c.impact - a.likelihood * a.impact).slice(0, 3)

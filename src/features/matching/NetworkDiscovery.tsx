@@ -432,7 +432,7 @@ export function NetworkDiscovery() {
           supabase.from("founders").select("*"),
           supabase.from("mentors").select("*"),
           supabase.from("investors").select("*"),
-          supabase.from("ideas").select("*"),
+          supabase.from("ideas").select("id, owner_id, elevator_pitch, solution, problem, target_market, tech_stack"),
         ])
         if (usersErr) throw usersErr
 
