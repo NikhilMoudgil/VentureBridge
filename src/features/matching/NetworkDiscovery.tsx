@@ -16,7 +16,7 @@ import {
   GraduationCap, Rocket, Landmark, XCircle,
 } from "lucide-react"
 import { toast } from "sonner"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 const supabase = createClient()
 
@@ -366,6 +366,7 @@ function DetailField({ label, children }: { label: string; children: ReactNode }
 
 export function NetworkDiscovery() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [currentUserRole, setCurrentUserRole] = useState<Role | null>(null)
   const [currentUserProfile, setCurrentUserProfile] = useState<NetworkProfile | null>(null)
   const [founderIdeaId, setFounderIdeaId] = useState<string | null>(null)
@@ -503,6 +504,14 @@ export function NetworkDiscovery() {
       if (!user || currentUserRole !== "founder") return
       if (!founderIdeaId) {
         toast.error("You need to create a venture in IdeaLab before pitching an investor!")
+        return
+      }
+      // An investor can only read a pitch that has been published. Check first so they never land on an empty page.
+      const { data: published, error: shareErr } = await supabase.from("idea_pitch_shares").select("idea_id").eq("idea_id", founderIdeaId).maybeSingle()
+      if (!shareErr && !published) {
+        toast.error("Publish your pitch first so the investor can read it.", {
+          action: { label: "Open Pitch Studio", onClick: () => navigate(`${ROUTES.idealab}/${founderIdeaId}?s=pitch`) },
+        })
         return
       }
       try {

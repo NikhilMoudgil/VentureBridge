@@ -14,9 +14,12 @@ type Deal = {
   id: string
   idea_id?: string | null
   status: string
-  founders: { full_name: string; industry: string }
-  ideas: { elevator_pitch: string; problem: string; target_market: string; tech_stack: string }
+  founders: { full_name: string; industry: string } | null
+  ideas: { name?: string | null; tagline?: string | null; elevator_pitch?: string | null; problem?: string | null; target_market?: string | null } | null
 }
+
+// Supabase returns a joined row as an object or a one-item array depending on the relation
+const one = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? v[0] ?? null : v ?? null)
 
 export function DealFlow() {
   const { user } = useAuth()
@@ -27,21 +30,22 @@ export function DealFlow() {
     async function fetchDeals() {
       if (!user) return
       
-      const { data, error } = await supabase
+      const query = (ideaCols: string) => supabase
         .from('deal_flow')
-        .select(`
-          id, status, idea_id, 
-          founders(full_name, industry), 
-          ideas(elevator_pitch, problem, target_market, tech_stack)
-        `)
+        .select(`id, status, idea_id, founders(full_name, industry), ideas(${ideaCols})`)
         .eq('investor_id', user.id)
         .order('created_at', { ascending: false })
+
+      let res: { data: any[] | null; error: { message: string } | null } = await query('name, tagline, elevator_pitch, problem, target_market')
+      // Database upgrade not applied yet (no name/tagline columns): fall back to the original fields.
+      if (res.error) res = await query('elevator_pitch, problem, target_market')
+      const { data, error } = res
 
       if (error) {
         console.error("Deal Flow Fetch Error:", error)
         toast.error(`Database Error: ${error.message}`)
       } else if (data) {
-        setDeals(data as any[])
+        setDeals(data.map(d => ({ ...d, founders: one(d.founders), ideas: one(d.ideas) })))
       }
       setLoading(false)
     }
@@ -94,9 +98,10 @@ export function DealFlow() {
                 </Badge>
                 <span className="text-xs font-mono text-zinc-500">{deal.founders?.industry || "Tech"}</span>
               </div>
-              <CardTitle className="text-base sm:text-lg">Pitch by {deal.founders?.full_name}</CardTitle>
-              <CardDescription className="mt-2 text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 font-medium">
-                {deal.ideas?.elevator_pitch || "No pitch provided."}
+              <CardTitle className="text-base sm:text-lg">{deal.ideas?.name?.trim() || `Pitch by ${deal.founders?.full_name ?? "a founder"}`}</CardTitle>
+              {deal.ideas?.name?.trim() ? <p className="text-xs text-zinc-500">by {deal.founders?.full_name ?? "a founder"}</p> : null}
+              <CardDescription className="mt-2 line-clamp-2 text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 font-medium">
+                {deal.ideas?.tagline?.trim() || deal.ideas?.elevator_pitch || "No pitch provided."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0 pb-4">
@@ -104,14 +109,15 @@ export function DealFlow() {
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Problem</span>
                 <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{deal.ideas?.problem}</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-xs text-zinc-500">
-                <div><span className="font-semibold text-zinc-700 dark:text-zinc-300">Market:</span> {deal.ideas?.target_market}</div>
-                <div><span className="font-semibold text-zinc-700 dark:text-zinc-300">Stack:</span> {deal.ideas?.tech_stack}</div>
-              </div>
+              {deal.ideas?.target_market ? (
+                <p className="line-clamp-1 text-xs text-zinc-500"><span className="font-semibold text-zinc-700 dark:text-zinc-300">Market:</span> {deal.ideas.target_market}</p>
+              ) : null}
             </CardContent>
             {deal.idea_id ? (
               <div className="px-4 pb-4 sm:px-6">
-                <Link to={`/dashboard/pitch/${deal.idea_id}`} className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">View full pitch</Link>
+                <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+                  <Link to={`/dashboard/pitch/${deal.idea_id}`}>View full pitch</Link>
+                </Button>
               </div>
             ) : null}
             
