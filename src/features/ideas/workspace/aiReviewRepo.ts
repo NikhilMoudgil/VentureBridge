@@ -47,6 +47,7 @@ const MESSAGES: Record<string, string> = {
   provider_failed: "The AI service is not responding. Please try again in a minute.",
   provider_key: "The AI key was rejected. Check the LLM_API_KEY secret.",
   provider_model: "The AI model name was not found. Check the LLM_MODEL secret.",
+  provider_busy: "The AI service is overloaded right now. Please try again in a minute.",
   provider_quota: "The AI service is busy or its free quota is used up. Try again in a minute.",
   provider_request: "The AI service refused the request. Check the LLM_MODEL secret.",
 }
