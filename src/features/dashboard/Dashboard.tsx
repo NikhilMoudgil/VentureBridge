@@ -486,6 +486,22 @@ function FounderView({ d }: { d: DashboardData }) {
         ]}
       />
 
+      {d.feedbackNotes.length > 0 && (
+        <Panel title="New mentor feedback" action={{ label: "Open ventures", to: "/dashboard/ventures" }}>
+          <List>
+            {d.feedbackNotes.map((n) => (
+              <Row
+                key={n.id}
+                name={`${n.mentorName}${n.ideaName ? ` on ${n.ideaName}` : ""}`}
+                sub={n.body}
+                trailing={timeAgo(n.createdAt)}
+                to={`/dashboard/idealab/${n.ideaId}`}
+              />
+            ))}
+          </List>
+        </Panel>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-5">
         <Panel
           title="Mentors worth meeting"
@@ -622,6 +638,24 @@ function MentorView({ d }: { d: DashboardData }) {
           },
         ]}
       />
+
+      <Panel title="Mentee pitches" action={{ label: "Open network", to: "/dashboard/network" }}>
+        {d.menteePitches.length === 0 ? (
+          <Empty>Once a founder you mentor shares their pitch, it appears here so you can leave feedback.</Empty>
+        ) : (
+          <List>
+            {d.menteePitches.map((p) => (
+              <Row
+                key={p.ideaId}
+                name={p.name || "Untitled venture"}
+                sub={`${p.founder.full_name || "Founder"}${p.founder.industry ? ` · ${p.founder.industry}` : ""}`}
+                trailing={p.notes > 0 ? `${p.notes} ${plural(p.notes, "note", "notes")} sent` : "Review pitch"}
+                to={`/dashboard/pitch/${p.ideaId}`}
+              />
+            ))}
+          </List>
+        )}
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Panel title="Pitch queue" action={{ label: "Open network", to: "/dashboard/network" }} className="lg:col-span-3">

@@ -15,6 +15,8 @@ export type DealItem = {
   founder: Person | null
   pitch: string | null
 }
+export type MenteePitch = { founder: Person; ideaId: string; name: string | null; notes: number }
+export type FeedbackNote = { id: string; ideaId: string; ideaName: string | null; mentorName: string; body: string; createdAt: string }
 export type Activity = { id: string; from: string; content: string; created_at: string }
 
 export type DashboardData = {
@@ -38,6 +40,9 @@ export type DashboardData = {
   pendingRequests: number
   // mentor
   pendingList: PendingRequest[]
+  menteePitches: MenteePitch[]
+  // founder: latest notes mentors left on shared pitches
+  feedbackNotes: FeedbackNote[]
   // founder + investor
   dealsTotal: number
   dealsInterested: number
@@ -64,6 +69,8 @@ const EMPTY: DashboardData = {
   acceptedConnections: 0,
   pendingRequests: 0,
   pendingList: [],
+  menteePitches: [],
+  feedbackNotes: [],
   dealsTotal: 0,
   dealsInterested: 0,
   deals: [],
@@ -202,6 +209,32 @@ export function useDashboardData(): DashboardData {
             }))
             .sort((a, b) => b.score - a.score)
             .slice(0, 4)
+
+          // Latest mentor notes on this founder's shared pitches (skipped quietly if the feedback upgrade is not applied)
+          try {
+            const fb = await supabase
+              .from("pitch_feedback")
+              .select("id, idea_id, mentor_id, body, created_at, ideas(name)")
+              .order("created_at", { ascending: false })
+              .limit(3)
+            const notes: any[] = fb.error ? [] : fb.data ?? []
+            const mentorIds = Array.from(new Set(notes.map((n) => n.mentor_id)))
+            const mentorNames: Record<string, string> = {}
+            if (mentorIds.length) {
+              const { data: ms } = await supabase.from("users").select("id, full_name").in("id", mentorIds)
+              ;(ms ?? []).forEach((m: any) => (mentorNames[m.id] = m.full_name))
+            }
+            next.feedbackNotes = notes.map((n) => ({
+              id: n.id,
+              ideaId: n.idea_id,
+              ideaName: one(n.ideas)?.name ?? null,
+              mentorName: mentorNames[n.mentor_id] || "A mentor",
+              body: n.body ?? "",
+              createdAt: n.created_at,
+            }))
+          } catch {
+            /* feedback is optional */
+          }
         }
 
         if (role === "mentor") {
@@ -218,6 +251,36 @@ export function useDashboardData(): DashboardData {
             .map((r) => ({ founder: one(r.founders) as Person | null, requestedAt: r.created_at as string | null }))
             .filter((r): r is PendingRequest => r.founder !== null)
             .sort((a, b) => (b.requestedAt ?? "").localeCompare(a.requestedAt ?? ""))
+
+          // Pitches shared by founders this mentor has accepted, with how many notes the mentor already left
+          try {
+            const mentees = rows
+              .filter((r) => r.status === "accepted")
+              .map((r) => one(r.founders) as Person | null)
+              .filter((f): f is Person => f !== null)
+            if (mentees.length) {
+              const [shares, given] = await Promise.all([
+                supabase
+                  .from("idea_pitch_shares")
+                  .select("idea_id, owner_id, name:snapshot->>name")
+                  .in("owner_id", mentees.map((f) => f.id)),
+                supabase.from("pitch_feedback").select("idea_id").eq("mentor_id", id),
+              ])
+              const counts: Record<string, number> = {}
+              ;((given.error ? [] : given.data ?? []) as any[]).forEach((g) => (counts[g.idea_id] = (counts[g.idea_id] ?? 0) + 1))
+              const byId = new Map(mentees.map((f) => [f.id, f]))
+              next.menteePitches = ((shares.error ? [] : shares.data ?? []) as any[])
+                .filter((s) => byId.has(s.owner_id))
+                .map((s) => ({
+                  founder: byId.get(s.owner_id) as Person,
+                  ideaId: s.idea_id as string,
+                  name: (s.name as string | null) ?? null,
+                  notes: counts[s.idea_id] ?? 0,
+                }))
+            }
+          } catch {
+            /* optional */
+          }
         }
 
         if (role === "investor") {

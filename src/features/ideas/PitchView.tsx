@@ -8,6 +8,7 @@ import { createClient } from "@/lib/client"
 import { useAuth } from "@/app/AuthProvider"
 import { EVIDENCE_LABEL, type Evidence } from "./workspace/pitch"
 import { buildGlance } from "./workspace/pitchGlance"
+import { MentorFeedback } from "./workspace/MentorFeedback"
 import { getSharedPitch, type SharedPitch } from "./workspace/shareRepo"
 import { MissingSchemaError } from "./workspace/ventureRepo"
 
@@ -218,6 +219,15 @@ export function PitchView() {
           ))}
         </section>
       )}
+
+      {role === "mentor" && !mine && ideaId ? (
+        <div className="print:hidden">
+          <MentorFeedback ideaId={ideaId} mode="write" sections={snap.sections.map(s => ({ id: s.id, title: s.title }))} />
+        </div>
+      ) : null}
+      {mine && ideaId ? (
+        <div className="print:hidden"><MentorFeedback ideaId={ideaId} mode="read" sections={snap.sections.map(s => ({ id: s.id, title: s.title }))} /></div>
+      ) : null}
 
       {canDecide ? (
         <div className="sticky bottom-4 z-10 print:hidden flex flex-col gap-2 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center dark:border-zinc-800 dark:bg-zinc-900/95">

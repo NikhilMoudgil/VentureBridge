@@ -9,6 +9,7 @@ import { computeScorecard } from "../scorecard"
 import type { VentureSnapshot } from "../types"
 import type { SectionProps } from "./nav"
 import { SharePanel } from "./SharePanel"
+import { MentorFeedback } from "../MentorFeedback"
 
 const EVIDENCE_STYLE: Record<Evidence, string> = {
   founder: "text-indigo-700 dark:text-indigo-300",
@@ -118,6 +119,7 @@ export function PitchSection({ data, api }: SectionProps) {
       </div>
 
       <SharePanel idea={idea} resolved={resolved} />
+      <MentorFeedback ideaId={idea.id} mode="read" sections={resolved.map(r => ({ id: r.id, title: r.title }))} />
 
       <Panel title="Publish and confirm" description="Two deliberate steps. Neither happens automatically.">
         <div className="space-y-2">

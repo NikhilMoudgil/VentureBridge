@@ -381,7 +381,8 @@ export function AdminDashboard() {
             <CardContent>
               <div className="flex items-end gap-3 h-48 mt-4">
                 {chartData.map((d, i) => (
-                  <div key={d.label} className="flex-1 flex flex-col items-center gap-2 group">
+                  <div key={d.label} className="flex-1 h-full flex flex-col items-center gap-2 group" title={`${d.label}: ${d.val} members`}>
+                    <span className="text-xs font-semibold tabular-nums text-zinc-600 dark:text-zinc-300">{d.val}</span>
                     <div className="w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-t-md relative flex-1 overflow-hidden">
                       <div 
                         className="absolute bottom-0 w-full bg-gradient-to-t from-indigo-600 to-indigo-400 dark:from-indigo-900 dark:to-indigo-500 rounded-t-md transition-all duration-1000 group-hover:brightness-110" 
