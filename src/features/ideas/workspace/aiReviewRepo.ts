@@ -45,6 +45,10 @@ const MESSAGES: Record<string, string> = {
   nothing_to_review: "Fill in at least one pitch section first.",
   bad_model_output: "The AI returned something unreadable. Please try again.",
   provider_failed: "The AI service is not responding. Please try again in a minute.",
+  provider_key: "The AI key was rejected. Check the LLM_API_KEY secret.",
+  provider_model: "The AI model name was not found. Check the LLM_MODEL secret.",
+  provider_quota: "The AI service is busy or its free quota is used up. Try again in a minute.",
+  provider_request: "The AI service refused the request. Check the LLM_MODEL secret.",
 }
 export const describeAiError = (code: string) => MESSAGES[code] ?? "Could not run the review. Please try again."
 
