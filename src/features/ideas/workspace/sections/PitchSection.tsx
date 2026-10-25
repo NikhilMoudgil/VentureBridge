@@ -10,6 +10,7 @@ import type { VentureSnapshot } from "../types"
 import type { SectionProps } from "./nav"
 import { SharePanel } from "./SharePanel"
 import { MentorFeedback } from "../MentorFeedback"
+import { AiReview } from "../AiReview"
 
 const EVIDENCE_STYLE: Record<Evidence, string> = {
   founder: "text-indigo-700 dark:text-indigo-300",
@@ -117,6 +118,8 @@ export function PitchSection({ data, api }: SectionProps) {
           )
         })}
       </div>
+
+      <AiReview ideaId={idea.id} resolved={resolved} />
 
       <SharePanel idea={idea} resolved={resolved} />
       <MentorFeedback ideaId={idea.id} mode="read" sections={resolved.map(r => ({ id: r.id, title: r.title }))} />
