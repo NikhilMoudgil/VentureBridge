@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, CheckCircle2, ChevronRight, Lock, X } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ChevronRight, Lock, Printer, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,7 @@ function Shell({ children, role }: { children: React.ReactNode; role: string | n
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 pb-12">
       <Link to={role === "investor" ? "/dashboard/dealflow" : "/dashboard/network"}
-        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
+        className="inline-flex print:hidden items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
         <ArrowLeft className="h-3 w-3" /> Back
       </Link>
       {children}
@@ -139,6 +139,16 @@ export function PitchView() {
   const snap = pitch.snapshot
   const title = snap.name || "Untitled venture"
   const mine = pitch.ownerId === uid
+
+  /** Opens every section, switches to the light theme for paper, then prints. The browser's print dialog has "Save as PDF". */
+  const savePdf = () => {
+    setOpenAll(true)
+    const root = document.documentElement
+    const wasDark = root.classList.contains("dark")
+    if (wasDark) root.classList.remove("dark")
+    window.addEventListener("afterprint", () => { if (wasDark) root.classList.add("dark") }, { once: true })
+    window.setTimeout(() => window.print(), 250)
+  }
   const canDecide = role === "investor" && dealId && (dealStatus === "submitted" || dealStatus === "reviewing")
 
   return (
@@ -155,6 +165,9 @@ export function PitchView() {
           {pitch.updatedAt ? ` · updated ${new Date(pitch.updatedAt).toLocaleDateString()}` : ""}
           {mine ? " · this is how readers see your pitch" : ""}
         </p>
+        <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs print:hidden" onClick={savePdf}>
+          <Printer className="mr-1.5 h-3.5 w-3.5" /> Save as PDF
+        </Button>
         <p className="text-[11px] leading-snug text-zinc-500">
           The founder's own account. Items marked as assumptions are not verified, and nothing here means the venture is validated.
         </p>
@@ -185,13 +198,13 @@ export function PitchView() {
         <section aria-label="Full pitch" className="space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Full pitch <span className="font-normal text-zinc-500">({snap.sections.length} sections)</span></h2>
-            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setOpenAll(v => !v)}>
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs print:hidden" onClick={() => setOpenAll(v => !v)}>
               {openAll ? "Collapse all" : "Expand all"}
             </Button>
           </div>
           {snap.sections.map(s => (
             <details key={`${s.id}-${openAll}`} open={openAll}
-              className="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/50">
+              className="group break-inside-avoid rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/50">
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
                 <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400 transition-transform group-open:rotate-90" aria-hidden />
                 <span>{s.title}</span>
@@ -207,7 +220,7 @@ export function PitchView() {
       )}
 
       {canDecide ? (
-        <div className="sticky bottom-4 z-10 flex flex-col gap-2 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center dark:border-zinc-800 dark:bg-zinc-900/95">
+        <div className="sticky bottom-4 z-10 print:hidden flex flex-col gap-2 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center dark:border-zinc-800 dark:bg-zinc-900/95">
           <span className="text-xs text-zinc-500 sm:mr-auto">Decide when you are ready</span>
           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={() => decide("interested")}>
             <CheckCircle2 className="mr-2 h-4 w-4" /> Interested

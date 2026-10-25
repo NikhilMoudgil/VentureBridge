@@ -17,7 +17,6 @@ import {
   Link2, 
   UserCheck, 
   LogOut,
-  TrendingUp,
   XCircle,
   ShieldCheck,
   Building,
@@ -27,9 +26,7 @@ import {
   Activity,
   Database,
   Lock,
-  Download,
-  AlertOctagon,
-  RefreshCw
+  Download
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -168,20 +165,47 @@ export function AdminDashboard() {
       ...founders.map(f => ({ id: f.id, title: f.full_name || 'New Founder', type: 'Registration', role: 'founder', date: new Date(f.created_at) })),
       ...mentors.map(m => ({ id: m.id, title: m.full_name || 'New Mentor', type: 'Registration', role: 'mentor', date: new Date(m.created_at) })),
       ...investors.map(i => ({ id: i.id, title: i.full_name || 'New Investor', type: 'Registration', role: 'investor', date: new Date(i.created_at) })),
-      ...ideas.map(id => ({ id: id.id, title: id.title || 'New Pitch Added', type: 'Idea', role: 'idea', date: new Date(id.created_at) }))
+      ...ideas.map(id => ({ id: id.id, title: id.name || id.title || 'Untitled venture', type: 'Idea', role: 'idea', date: new Date(id.created_at) }))
     ]
     return all.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 6)
   }, [founders, mentors, investors, ideas])
 
-  // Mocked Chart Data based on current metrics for visual aesthetics
-  const chartData = [
-    { label: 'Jan', val: Math.floor(totalUsers * 0.2) },
-    { label: 'Feb', val: Math.floor(totalUsers * 0.4) },
-    { label: 'Mar', val: Math.floor(totalUsers * 0.5) },
-    { label: 'Apr', val: Math.floor(totalUsers * 0.7) },
-    { label: 'May', val: Math.floor(totalUsers * 0.85) },
-    { label: 'Jun', val: totalUsers },
-  ]
+  const verifiedMentors = mentors.filter(m => m.is_verified).length
+  const verifiedInvestors = investors.filter(i => i.is_verified).length
+
+  // Real growth data: cumulative sign-ups at the end of each of the last 6 months,
+  // built from every member's created_at.
+  const chartData = useMemo(() => {
+    const stamps = [...founders, ...mentors, ...investors]
+      .map(r => (r?.created_at ? new Date(r.created_at).getTime() : NaN))
+      .filter(t => !Number.isNaN(t))
+    const now = new Date()
+    return Array.from({ length: 6 }, (_, i) => {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - (4 - i), 1)
+      return {
+        label: monthStart.toLocaleDateString('en-US', { month: 'short' }),
+        val: stamps.filter(t => t < nextMonth.getTime()).length,
+      }
+    })
+  }, [founders, mentors, investors])
+
+  const exportCsv = () => {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const rows: unknown[][] = [['type', 'name', 'industry_or_firm', 'verified', 'created_at']]
+    founders.forEach(f => rows.push(['founder', f.full_name, f.industry, '', f.created_at]))
+    mentors.forEach(m => rows.push(['mentor', m.full_name, m.industry, m.is_verified, m.created_at]))
+    investors.forEach(i => rows.push(['investor', i.full_name, i.firm_name, i.is_verified, i.created_at]))
+    ideas.forEach(i => rows.push(['venture', i.title || i.name, i.industry, '', i.created_at]))
+    const blob = new Blob([rows.map(r => r.map(esc).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `venturebridge-export-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`Exported ${rows.length - 1} records.`)
+  }
   const maxChartVal = Math.max(...chartData.map(d => d.val), 1)
 
   const renderModalContent = () => {
@@ -295,7 +319,6 @@ export function AdminDashboard() {
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 dark:group-hover:bg-indigo-950 dark:group-hover:text-indigo-400 transition-colors"><Users className="h-5 w-5"/></div>
-                <span className="text-xs font-medium text-emerald-500 flex items-center gap-1"><TrendingUp className="h-3 w-3"/> +12%</span>
               </div>
               <div className="text-3xl font-bold tracking-tight">{metrics.founders}</div>
               <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Total Founders</p>
@@ -309,7 +332,7 @@ export function AdminDashboard() {
                 <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-emerald-100 group-hover:text-emerald-600 dark:group-hover:bg-emerald-950 dark:group-hover:text-emerald-400 transition-colors"><UserCheck className="h-5 w-5"/></div>
               </div>
               <div className="text-3xl font-bold tracking-tight">{metrics.mentors}</div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Verified Mentors</p>
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Mentors <span className="normal-case tracking-normal">({verifiedMentors} verified)</span></p>
             </CardContent>
           </Card>
 
@@ -320,7 +343,7 @@ export function AdminDashboard() {
                 <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-blue-100 group-hover:text-blue-600 dark:group-hover:bg-blue-950 dark:group-hover:text-blue-400 transition-colors"><Briefcase className="h-5 w-5"/></div>
               </div>
               <div className="text-3xl font-bold tracking-tight">{metrics.investors}</div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Active Investors</p>
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Investors <span className="normal-case tracking-normal">({verifiedInvestors} verified)</span></p>
             </CardContent>
           </Card>
 
@@ -329,7 +352,6 @@ export function AdminDashboard() {
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-amber-100 group-hover:text-amber-600 dark:group-hover:bg-amber-950 dark:group-hover:text-amber-400 transition-colors"><Lightbulb className="h-5 w-5"/></div>
-                <span className="text-xs font-medium text-emerald-500 flex items-center gap-1"><TrendingUp className="h-3 w-3"/> +5%</span>
               </div>
               <div className="text-3xl font-bold tracking-tight">{metrics.ideas}</div>
               <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Total Pitches</p>
@@ -343,7 +365,7 @@ export function AdminDashboard() {
                 <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-purple-100 group-hover:text-purple-600 dark:group-hover:bg-purple-950 dark:group-hover:text-purple-400 transition-colors"><Link2 className="h-5 w-5"/></div>
               </div>
               <div className="text-3xl font-bold tracking-tight">{metrics.connections}</div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Matches Made</p>
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1 font-medium">Connections</p>
             </CardContent>
           </Card>
         </div>
@@ -354,7 +376,7 @@ export function AdminDashboard() {
           {/* Main Chart Area */}
           <Card className="lg:col-span-2 border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2"><Activity className="h-4 w-4 text-indigo-500" /> Platform Growth Overview</CardTitle>
+              <CardTitle className="text-lg font-semibold flex items-center gap-2"><Activity className="h-4 w-4 text-indigo-500" /> Platform Growth <span className="text-xs font-normal text-zinc-500">(total members, last 6 months)</span></CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-3 h-48 mt-4">
@@ -395,20 +417,13 @@ export function AdminDashboard() {
           <Card className="border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50">
             <CardHeader>
               <CardTitle className="text-lg font-semibold flex items-center gap-2"><Lock className="h-4 w-4 text-amber-500" /> System Controls</CardTitle>
-              <CardDescription>Administrative functions</CardDescription>
+              <CardDescription>Exports use the records already loaded on this page</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <Button onClick={() => toast.success("Data export initiated. You will receive an email shortly.")} variant="outline" className="w-full justify-start border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-700/80">
-                <Download className="h-4 w-4 mr-3 text-zinc-500" /> Export Database (CSV)
+              <Button onClick={exportCsv} variant="outline" className="w-full justify-start border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-700/80">
+                <Download className="h-4 w-4 mr-3 text-zinc-500" /> Export members and ventures (CSV)
               </Button>
-              <Button onClick={() => toast.success("Cache cleared successfully.")} variant="outline" className="w-full justify-start border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-700/80">
-                <RefreshCw className="h-4 w-4 mr-3 text-blue-500" /> Flush System Cache
-              </Button>
-              <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-2" />
-              <Button onClick={() => toast.error("Action requires secondary authorization.")} variant="outline" className="w-full justify-start border-red-200 dark:border-red-900/50 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/40">
-                <AlertOctagon className="h-4 w-4 mr-3" /> Enable Maintenance Mode
-              </Button>
-              
+
               <div className="mt-4 p-4 rounded-lg bg-emerald-50 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 flex gap-3 items-start">
                 <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
                 <div>

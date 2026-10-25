@@ -86,7 +86,7 @@ export function DashboardLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
       {/* --- HEADER --- */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md dark:bg-zinc-950/80">
+      <header className="sticky top-0 z-50 print:hidden w-full border-b bg-white/80 backdrop-blur-md dark:bg-zinc-950/80">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
           
           {/* 1. Logo */}
@@ -195,17 +195,10 @@ export function DashboardLayout() {
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="border-t bg-white dark:bg-zinc-950">
+      <footer className="border-t bg-white print:hidden dark:bg-zinc-950">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 text-sm text-zinc-500 md:px-8">
           <p>© {new Date().getFullYear()} VentureBridge.</p>
-          <div className="flex gap-4">
-            <Link to="#" className="hover:underline">
-              Privacy
-            </Link>
-            <Link to="#" className="hover:underline">
-              Terms
-            </Link>
-          </div>
+          <p className="hidden sm:block">Founders, mentors and investors, one place.</p>
         </div>
       </footer>
     </div>
