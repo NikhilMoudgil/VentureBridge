@@ -1,18 +1,21 @@
 # VentureBridge
 
-> An intelligent matchmaking platform connecting early-stage startup founders with verified industry mentors, backed by structured venture diagnostics and robust access control.
+> A startup-ecosystem platform where founders build evidence-labelled pitches, mentors give section-level feedback, investors shortlist ventures, and admins keep the community healthy, all under strict row-level access control.
+
+**Live demo:** https://venture-bridge-ruby.vercel.app
 
 ---
 
 ## 📖 Overview
 
-**VentureBridge** bridges the gap between vision and execution. Early-stage founders often lack access to experienced advisory networks, while seasoned industry mentors struggle to discover high-signal venture hypotheses.
+**VentureBridge** bridges the gap between vision and execution. Early-stage founders often lack structure for their idea and access to advisors and investors, while mentors and investors struggle to find high-signal ventures.
 
-VentureBridge provides a unified ecosystem where:
+VentureBridge provides one connected ecosystem with four roles:
 
-* **Founders** can structure their business hypotheses, including problem, solution, market size, and tech stack, run automated validation, and discover tailored mentors.
-* **Mentors** can filter through vetted startup pitches, evaluate founder hypotheses, and accept advisory connection requests.
-* **Admins** manage platform integrity by auditing system metrics and manually vetting and verifying mentor credentials.
+* **Founders** develop an idea in **IdeaLab 2.0**, a guided workspace with an honest scorecard, share a snapshot of the pitch, and request AI feedback.
+* **Mentors** accept connection requests, read the pitches shared with them, and leave feedback on individual sections.
+* **Investors** receive pitches in deal flow, keep a shortlist (Portfolio) and write private notes.
+* **Admins** audit platform metrics, verify mentors and export data.
 
 ---
 
@@ -20,150 +23,130 @@ VentureBridge provides a unified ecosystem where:
 
 ### 👨‍💻 For Founders
 
-* **IdeaLab & Venture Pitching:** Structured multi-step venture formulation covering core pain points, solution dynamics, target addressable market, and technical architecture.
-* **Network Discovery:** Filter verified mentors by domain expertise, years of experience, and industry focus.
-* **Match Compatibility Scoring:** Algorithmic alignment score matching founder market and technology needs with mentor proficiencies.
-* **Connection Lifecycle:** Send, monitor (`Pending` / `Accepted` / `Declined`), and manage connection requests.
+* **IdeaLab 2.0 workspace:** structured sections (Overview, Market, Business, Blueprint, Execution, Risks, Scorecard, Pitch) with autosave and optimistic concurrency (`row_version`) so two tabs never overwrite each other silently.
+* **Evidence labels:** every claim is tagged founder-stated, calculated, experiment-backed, assumption or missing.
+* **Deterministic scorecard:** a rule-based readiness score that never marks an idea as "validated".
+* **Pitch sharing:** share a snapshot of the pitch with connected mentors and investors only; later edits do not leak.
+* **Print-friendly pitch:** a "Save as PDF" button produces a clean, shareable document.
+* **AI Pitch Review:** an optional second opinion (strengths, gaps, investor questions, next experiments), saved per venture and limited per day.
+* **Private funding ask:** the funding goal lives inside the workspace blueprint and is not readable by other users.
+* **Network discovery and connections:** find verified mentors and send, track and manage requests (`pending` / `accepted` / `declined`).
+* **Mentor feedback inbox:** new mentor notes appear on the founder dashboard and under the pitch.
 
 ### 🧑‍🏫 For Mentors
 
-* **Curated Deal Flow:** Review incoming founder pitches with granular problem and solution breakdowns without inbox clutter.
-* **Advisory Workspace:** Accept or decline connection requests from founders in real time.
-* **Verification Flow:** Built-in verification status safeguards platform quality. Unverified accounts remain restricted until vetted.
+* **Mentee pitches:** see the pitches shared by accepted founders on the dashboard.
+* **Section-level feedback:** write, and delete, notes on a specific pitch section (up to 2,000 characters). Only accepted connections can review.
+* **Verification flow:** unverified mentors stay restricted until an admin approves them.
+
+### 💼 For Investors
+
+* **Deal flow:** receive pitches sent by founders.
+* **Portfolio shortlist:** tabs for Shortlist, Under review and Passed, with search.
+* **Private notes:** per-deal notes visible only to the investor who wrote them.
 
 ### 🛡️ For Platform Administrators
 
-* **Dedicated Admin Gateway:** Hardened login interface strictly validating superuser privileges.
-* **System Operations Panel:** Live analytics tracking total founders, mentors, pitches, and active network connections.
-* **Mentor Verification Queue:** Review pending mentor profiles and grant or revoke verified badges.
+* **Dedicated admin gateway:** login validating admin privileges.
+* **Operations dashboard:** live counts, a cumulative member-growth chart for the last six months, recent activity and CSV export.
+* **Mentor verification queue:** grant or revoke verified badges.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer                       | Technology                                          |
-| --------------------------- | --------------------------------------------------- |
-| **Frontend Framework**      | React 18 with TypeScript                            |
-| **Build Tooling**           | Vite                                                |
-| **Routing**                 | React Router v6                                     |
-| **Styling & UI Components** | Tailwind CSS, Radix UI (Shadcn UI), Lucide React    |
-| **Backend & Database**      | Supabase (PostgreSQL, Realtime, Row Level Security) |
-| **Authentication**          | Supabase Auth (Email & Password, OAuth-ready)       |
-| **Notifications**           | Sonner                                              |
+| Layer                       | Technology                                                       |
+| --------------------------- | ---------------------------------------------------------------- |
+| **Frontend Framework**      | React with TypeScript                                            |
+| **Build Tooling**           | Vite                                                             |
+| **Routing**                 | React Router                                                     |
+| **Styling & UI Components** | Tailwind CSS, shadcn/ui (Radix UI), Lucide React, framer-motion  |
+| **Backend & Database**      | Supabase (PostgreSQL, Realtime, Row Level Security)              |
+| **Authentication**          | Supabase Auth (email and password)                               |
+| **Serverless**              | Supabase Edge Function (`pitch-review`, Deno)                    |
+| **AI (optional)**           | Gemini, Groq, OpenRouter or Anthropic, chosen by a secret        |
+| **Notifications**           | Sonner                                                           |
+| **Testing**                 | node:test with tsx                                               |
+| **Hosting**                 | Vercel (frontend), Supabase (backend)                            |
 
 ---
 
 ## 🗄️ Database Architecture & Security
 
-VentureBridge utilizes a normalized PostgreSQL schema hosted on Supabase. Relational integrity is enforced using foreign key cascades, while data access is protected through Row Level Security (RLS) policies.
+VentureBridge uses a PostgreSQL schema on Supabase with 20 tables. Relationships use foreign keys with cascades, and every table is protected by Row Level Security (RLS).
 
-### Database Relationship
+### Core relationships
 
 ```text
-       auth.users (Supabase Auth)
-             │
-             ├── ON DELETE CASCADE
-             ▼
-          users
-     (id, full_name, role)
-             │
-    ┌────────┴────────┐
-    ▼                 ▼
- founders          mentors
-                    (is_verified)
-    │                 │
-    ├──────┐          │
-    ▼      ▼          ▼
-  ideas  connections ◄─┘
+          auth.users (Supabase Auth)
+                │  ON DELETE CASCADE
+                ▼
+              users  (id, full_name, role)
+                │
+     ┌──────────┼───────────┐
+     ▼          ▼           ▼
+  founders    mentors    investors
+     │          │           │
+     ├── ideas ─┼───────────┤
+     │    │     │           │
+     │    ├── idea_workspace, idea_risks, idea_milestones,
+     │    │   idea_competitors, idea_market_assumptions,
+     │    │   experiments, hypotheses, idea_private_notes
+     │    ├── idea_pitch_shares  (shared snapshot)
+     │    ├── idea_ai_reviews    (saved AI reviews)
+     │    └── pitch_feedback     (mentor notes)
+     │
+     ├── connections  (founder ↔ mentor)
+     └── deal_flow ── investor_notes  (founder → investor)
+
+  messages  (direct messages)
 ```
 
----
+### Tables
 
-## 📋 Table Definitions
+| Group              | Tables                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Identity           | `users`, `founders`, `mentors`, `investors`                                                                             |
+| Network            | `connections`, `deal_flow`, `messages`                                                                                  |
+| Ventures           | `ideas`, `idea_workspace`, `idea_risks`, `idea_milestones`, `idea_competitors`, `idea_market_assumptions`, `experiments`, `hypotheses`, `idea_private_notes` |
+| Sharing & feedback | `idea_pitch_shares`, `pitch_feedback`, `investor_notes`                                                                 |
+| AI                 | `idea_ai_reviews`                                                                                                       |
 
-### `users`
-
-Base identity table referencing `auth.users(id)`.
-
-| Column       | Type      | Description                     |
-| ------------ | --------- | ------------------------------- |
-| `id`         | UUID, PK  | References `auth.users(id)`     |
-| `full_name`  | Text      | User's full name                |
-| `role`       | Text      | `founder`, `mentor`, or `admin` |
-| `created_at` | Timestamp | Account creation time           |
-
-### `founders`
-
-Profile details for founders.
-
-| Column          | Type         |
-| --------------- | ------------ |
-| `id`            | UUID, PK, FK |
-| `full_name`     | Text         |
-| `industry`      | Text         |
-| `startup_stage` | Text         |
-| `funding_goal`  | Text         |
-| `skills`        | Text         |
-| `created_at`    | Timestamp    |
-
-### `mentors`
-
-Profile details and verification status for mentors.
-
-| Column             | Type         |
-| ------------------ | ------------ |
-| `id`               | UUID, PK, FK |
-| `full_name`        | Text         |
-| `industry`         | Text         |
-| `skills`           | Text         |
-| `experience_years` | Integer      |
-| `is_verified`      | Boolean      |
-| `created_at`       | Timestamp    |
-
-### `ideas`
-
-Venture hypotheses submitted by founders.
-
-| Column           | Type      |
-| ---------------- | --------- |
-| `id`             | UUID, PK  |
-| `elevator_pitch` | Text      |
-| `problem`        | Text      |
-| `solution`       | Text      |
-| `target_market`  | Text      |
-| `market`         | Text      |
-| `tech_stack`     | Text      |
-| `owner_id`       | UUID, FK  |
-| `created_at`     | Timestamp |
-| `updated_at`     | Timestamp |
-
-### `connections`
-
-Matchmaking and advisory requests.
-
-| Column       | Type                                 |
-| ------------ | ------------------------------------ |
-| `id`         | UUID, PK                             |
-| `founder_id` | UUID, FK                             |
-| `mentor_id`  | UUID, FK                             |
-| `status`     | `pending`, `accepted`, or `declined` |
-| `created_at` | Timestamp                            |
-
-A unique constraint prevents duplicate founder-to-mentor connections.
+The full, current definition is in `db/schema_current.sql`.
 
 ---
 
 ## 🔐 Row Level Security (RLS)
 
-VentureBridge uses PostgreSQL Row Level Security to control access to application data.
+* **Owner-only data:** workspace content, private notes, saved AI reviews and investor notes can only be read and written by their owner.
+* **Controlled sharing:** a shared pitch is readable only by connected parties, through the helper `idealab_can_view_share(idea, owner)` (investors with a deal-flow row, mentors with a pending or accepted connection).
+* **Mentor feedback:** `idealab_mentor_can_review(idea)` requires an **accepted** connection; the author or the idea owner can read a note, only the author can delete it, and notes cannot be edited.
+* **Funding privacy:** `ideas.funding_goal` and `use_of_funds` are emptied and write-blocked; the ask lives in the workspace blueprint.
+* **Admin policies:** administrators can verify mentors and read platform data for the dashboard.
+* **Separate policies** for `SELECT`, `INSERT`, `UPDATE` and `DELETE`, and `auth.uid()` based checks throughout.
 
-### RLS Principles
+---
 
-* **Static Context Checks:** Policies use `auth.uid()` and direct relationships to determine access.
-* **Separation of Concerns:** Separate policies are defined for `SELECT`, `INSERT`, `UPDATE`, and `DELETE` operations.
-* **Admin Override:** Administrators have explicit policies allowing them to manage mentor verification.
-* **Role-Based Access:** Founder, mentor, and admin capabilities are separated through role-based policies.
-* **Data Protection:** Users can only modify records they are authorized to manage.
+## 🤖 AI Pitch Review
+
+The review runs server-side so the API key never reaches the browser.
+
+1. The founder clicks **Review my pitch** and confirms that the pitch text will be sent to an AI service.
+2. The app calls the `pitch-review` Edge Function with the venture id and the text sections.
+3. The function checks the user's session, confirms they own the idea, enforces a daily limit, and calls the configured provider with one retry and an optional fallback model.
+4. The structured result is validated, saved in `idea_ai_reviews` with the model name, and shown with the footer "treat it as a second opinion".
+
+The prompt forbids inventing facts, customers, numbers, currencies or units.
+
+Secrets (set in Supabase, never in the repo):
+
+| Secret               | Purpose                                                  |
+| -------------------- | -------------------------------------------------------- |
+| `LLM_PROVIDER`       | `gemini` (default), `groq`, `openrouter` or `anthropic`  |
+| `LLM_API_KEY`        | Provider key                                             |
+| `LLM_MODEL`          | Model name, e.g. `openrouter/free`                       |
+| `LLM_FALLBACK_MODEL` | Optional second model tried if the first is busy         |
+| `DAILY_LIMIT`        | Reviews per user per day (default 10)                    |
 
 ---
 
@@ -172,54 +155,28 @@ VentureBridge uses PostgreSQL Row Level Security to control access to applicatio
 ```text
 venturebridge/
 ├── public/
-│
+├── db/                             # SQL migrations and schema_current.sql
+├── supabase/
+│   └── functions/pitch-review/     # AI review Edge Function and tests
 ├── src/
-│   ├── app/
-│   │   ├── AuthProvider.tsx       # Supabase session & user context
-│   │   └── ThemeProvider.tsx      # Dark / light theme switching
-│   │
-│   ├── assets/                    # Static brand assets & illustrations
-│   │
-│   ├── components/
-│   │   ├── ui/                    # Reusable Radix / Shadcn UI primitives
-│   │   └── ModeToggle.tsx
-│   │
+│   ├── app/                        # AuthProvider, ThemeProvider
+│   ├── components/ui/              # shadcn/ui primitives
 │   ├── features/
-│   │   ├── admin/
-│   │   │   ├── AdminDashboard.tsx # Operations panel & mentor approvals
-│   │   │   └── AdminLogin.tsx     # Superuser gateway
-│   │   │
-│   │   ├── auth/
-│   │   │   ├── LoginForm.tsx      # User authentication
-│   │   │   ├── SignupForm.tsx     # Account registration
-│   │   │   └── Onboarding.tsx     # Role assignment & profile creation
-│   │   │
-│   │   ├── dashboard/
-│   │   │   ├── Dashboard.tsx      # Main router & role-based sidebar
-│   │   │   └── DashboardLayout.tsx
-│   │   │
+│   │   ├── admin/                  # AdminDashboard, AdminLogin
+│   │   ├── auth/                   # Login, Signup, Onboarding
+│   │   ├── dashboard/              # Role dashboards, layout, data loaders
 │   │   ├── ideas/
-│   │   │   ├── IdeaLab.tsx        # Hypothesis builder & pitch creation
-│   │   │   └── MyVentures.tsx     # Founder venture management
-│   │   │
-│   │   ├── matching/
-│   │   │   └── NetworkDiscovery.tsx
-│   │   │
-│   │   └── profiles/
-│   │       └── ProfileSettings.tsx
-│   │
-│   ├── lib/
-│   │   ├── client.ts              # Supabase browser client
-│   │   └── utils.ts               # Class utility helpers
-│   │
-│   ├── App.tsx                    # Top-level client routing
-│   ├── main.tsx                   # React root mount
-│   └── index.css                  # Tailwind styles
-│
+│   │   │   ├── IdeaLab.tsx, MyVentures.tsx, PitchView.tsx, ValidationLab.tsx
+│   │   │   └── workspace/          # IdeaLab 2.0: sections, scorecard, sharing,
+│   │   │                           # mentor feedback, AI review, repos and tests
+│   │   ├── investors/              # DealFlow, Portfolio
+│   │   ├── matching/               # NetworkDiscovery
+│   │   └── profiles/               # ProfileSettings
+│   ├── lib/                        # Supabase client, utilities
+│   ├── App.tsx
+│   └── main.tsx
 ├── .env.example
 ├── package.json
-├── tailwind.config.js
-├── tsconfig.json
 └── vite.config.ts
 ```
 
@@ -229,285 +186,87 @@ venturebridge/
 
 ## Prerequisites
 
-Make sure you have the following installed:
+* **Node.js** v18 or higher
+* **npm**, **pnpm** or **yarn**
+* A free **Supabase** project
 
-* **Node.js** v18.0.0 or higher
-* **npm**, **pnpm**, or **yarn**
-* A free **Supabase** account and project
-
----
-
-## 1. Clone the Repository
+## 1. Clone and install
 
 ```bash
 git clone https://github.com/your-username/venturebridge.git
 cd venturebridge
-```
-
----
-
-## 2. Install Dependencies
-
-```bash
 npm install
 ```
 
----
-
-## 3. Configure Environment Variables
-
-Create a `.env` file in the root directory:
+## 2. Configure environment variables
 
 ```bash
 cp .env.example .env
 ```
-
-Populate the `.env` file with your Supabase credentials:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-> **Security:** Never commit your `.env` file or expose your Supabase credentials publicly.
+> **Security:** never commit `.env`, and never put an AI provider key in the frontend or the repo. Provider keys belong only in Supabase secrets. If a key was ever committed, rotate it.
 
----
+## 3. Database setup
 
-## 4. Database Setup
+1. Open the **Supabase SQL Editor** and run the base setup in `db/migration.sql`.
+2. Run the upgrades in order: `migration2.sql` to `migration7.sql` (IdeaLab 2.0 workspace, pitch sharing, funding privacy, investor notes, mentor feedback, AI reviews). The upgrades are idempotent and safe to re-run.
+3. For a fresh project you can instead run the combined `venturebridge_all_upgrades.sql` after the base setup.
 
-Open the **Supabase SQL Editor** and run the following SQL to initialize the database tables, foreign keys, and RLS policies.
+`db/schema_current.sql` always shows the latest full schema.
 
-```sql
--- 1. Base Users Table
-CREATE TABLE public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name TEXT NOT NULL,
-  role TEXT CHECK (role IN ('founder', 'mentor', 'admin')) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
+## 4. (Optional) Enable AI Pitch Review
 
--- 2. Founders Profile Table
-CREATE TABLE public.founders (
-  id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  full_name TEXT NOT NULL,
-  industry TEXT,
-  startup_stage TEXT,
-  funding_goal TEXT,
-  skills TEXT,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
+1. In Supabase, create an Edge Function named exactly `pitch-review` and paste `supabase/functions/pitch-review/index.ts`.
+2. Turn **Verify JWT** off (the function validates the user itself).
+3. Add the secrets listed above, for example `LLM_PROVIDER=openrouter`, `LLM_MODEL=openrouter/free`.
 
--- 3. Mentors Profile Table
-CREATE TABLE public.mentors (
-  id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  full_name TEXT NOT NULL,
-  industry TEXT,
-  skills TEXT,
-  experience_years INT DEFAULT 0,
-  is_verified BOOLEAN DEFAULT FALSE NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
+The app works without this step; the AI panel then shows a "not configured" message.
 
--- 4. Ideas Table
-CREATE TABLE public.ideas (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID NOT NULL REFERENCES public.founders(id) ON DELETE CASCADE,
-  elevator_pitch TEXT,
-  problem TEXT,
-  solution TEXT,
-  target_market TEXT,
-  market TEXT,
-  tech_stack TEXT,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 5. Connections Table
-CREATE TABLE public.connections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  founder_id UUID NOT NULL REFERENCES public.founders(id) ON DELETE CASCADE,
-  mentor_id UUID NOT NULL REFERENCES public.mentors(id) ON DELETE CASCADE,
-  status TEXT CHECK (status IN ('pending', 'accepted', 'declined'))
-    DEFAULT 'pending' NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-  CONSTRAINT unique_connection UNIQUE (founder_id, mentor_id)
-);
-
--- Enable Row Level Security
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.founders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.mentors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ideas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
-
--- Users Policies
-CREATE POLICY "Users can read own record"
-ON public.users
-FOR SELECT
-USING (auth.uid() = id);
-
-CREATE POLICY "Admins can read all users"
-ON public.users
-FOR SELECT
-USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
-);
-
--- Founder Policies
-CREATE POLICY "Public read for founders"
-ON public.founders
-FOR SELECT
-TO authenticated
-USING (true);
-
-CREATE POLICY "Founders can update own profile"
-ON public.founders
-FOR UPDATE
-USING (auth.uid() = id);
-
--- Mentor Policies
-CREATE POLICY "Public read for verified mentors"
-ON public.mentors
-FOR SELECT
-TO authenticated
-USING (is_verified = true OR auth.uid() = id);
-
-CREATE POLICY "Mentors can update own profile"
-ON public.mentors
-FOR UPDATE
-USING (auth.uid() = id);
-
-CREATE POLICY "Admins can update mentors"
-ON public.mentors
-FOR UPDATE
-USING (
-  (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
-);
-
--- Ideas Policies
-CREATE POLICY "Pitches readable by authenticated users"
-ON public.ideas
-FOR SELECT
-TO authenticated
-USING (true);
-
-CREATE POLICY "Founders can manage own pitches"
-ON public.ideas
-FOR ALL
-USING (auth.uid() = owner_id);
-
--- Connection Policies
-CREATE POLICY "Users can view relevant connections"
-ON public.connections
-FOR SELECT
-USING (
-  auth.uid() = founder_id OR auth.uid() = mentor_id
-);
-
-CREATE POLICY "Founders can create connections"
-ON public.connections
-FOR INSERT
-WITH CHECK (
-  auth.uid() = founder_id
-);
-
-CREATE POLICY "Users can update relevant connections"
-ON public.connections
-FOR UPDATE
-USING (
-  auth.uid() = founder_id OR auth.uid() = mentor_id
-);
-```
-
----
-
-## 5. Run Locally
-
-Start the development server:
+## 5. Run locally
 
 ```bash
 npm run dev
 ```
 
-The application will be available at:
+The app is available at `http://localhost:5173`.
 
-```text
-http://localhost:5173
+## 6. Run the tests
+
+```bash
+npx tsx --test supabase/functions/pitch-review/index.test.ts src/features/ideas/workspace/*.test.ts
 ```
-
-Open the URL in your browser to start using VentureBridge.
 
 ---
 
 # 👑 Creating an Administrator Account
 
-Follow these steps to create an administrator account:
-
-1. Sign up for a new account through the standard frontend registration.
-
-2. Open **Supabase Studio**.
-
-3. Navigate to:
-
-   **Table Editor → `users`**
-
-4. Locate the row corresponding to your registered account.
-
-5. Change the `role` field from:
-
-   ```text
-   founder
-   ```
-
-   or
-
-   ```text
-   mentor
-   ```
-
-   to:
-
-   ```text
-   admin
-   ```
-
-6. Sign out of the application.
-
-7. Visit:
-
-   ```text
-   /admin-login
-   ```
-
-You should now have access to the administrator gateway.
+1. Sign up through the normal registration.
+2. Open **Supabase Studio → Table Editor → `users`**.
+3. Change your row's `role` to `admin`.
+4. Sign out, then visit `/admin-login`.
 
 ---
 
 # 🗺️ Roadmap
 
-* [x] Decoupled RLS PostgreSQL schema with cascading deletes
-* [x] Multi-role authentication and dedicated admin onboarding
-* [x] Dynamic network discovery and match score computation
-* [x] Two-way connection handshake (Send / Accept / Decline)
-* [ ] Automated AI Venture Diagnostics for IdeaLab pitch validation
-* [ ] Integrated direct messaging between connected founders and mentors
-* [ ] Pitch deck attachment storage using Supabase Storage buckets
-* [ ] Calendar scheduling integration for approved advisory sessions
-
----
-
-# 🔮 Future Improvements
-
-Potential future enhancements include:
-
-* AI-powered startup idea analysis
-* Advanced founder–mentor recommendation models
-* Real-time chat and notifications
-* Video conferencing for advisory sessions
-* AI-assisted pitch deck generation
-* Startup progress analytics
-* Investor discovery and fundraising workflows
-* Advanced mentor reputation and review systems
+* [x] RLS-protected PostgreSQL schema with cascading deletes
+* [x] Multi-role authentication and admin onboarding
+* [x] Network discovery, match scoring and two-way connections
+* [x] IdeaLab 2.0 workspace with evidence labels and deterministic scorecard
+* [x] Pitch sharing snapshots and print-friendly PDF
+* [x] Mentor section-level feedback
+* [x] Investor deal flow, shortlist and private notes
+* [x] Admin dashboard with growth chart and CSV export
+* [x] AI Pitch Review via Edge Function with daily limit and provider switch
+* [ ] Curated "playbook" guidance the AI review can cite (RAG-lite)
+* [ ] Pitch deck attachments using Supabase Storage
+* [ ] Calendar scheduling for advisory sessions
+* [ ] Profile-level privacy for `founders.funding_goal`
 
 ---
 
